@@ -9,9 +9,10 @@ import unittest
 try:
     from fastapi.testclient import TestClient
 
-    from app.api.deps import get_cohort_repo
+    from app.api.deps import get_cohort_repo, get_engine
     from app.api.main import app
     from app.domain.models import Cohort
+    from app.matching.mock_engine import MockMatchingEngine
     from app.repositories import InMemoryCohortRepository
 
     _HAVE_FASTAPI = True
@@ -40,6 +41,9 @@ class TestApiAuthz(unittest.TestCase):
         # Seed a repo where cohort "c1" is owned by lecturer "lec1".
         repo = InMemoryCohortRepository([Cohort(id="c1", owner_id="lec1", name="Capstone 2026")])
         app.dependency_overrides[get_cohort_repo] = lambda: repo
+        # API tests focus on authz/HTTP — use the fast mock engine; the real OR-Tools engine
+        # has its own tests (tests/test_ortools_engine.py).
+        app.dependency_overrides[get_engine] = lambda: MockMatchingEngine()
         self.client = TestClient(app)
 
     def tearDown(self) -> None:

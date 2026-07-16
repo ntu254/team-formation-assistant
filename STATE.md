@@ -25,10 +25,12 @@ BRD/PRD authored earlier; system-memory passes `--strict`.
 
 - [ ] Tech stack chosen (Python/FastAPI + React); repo skeleton (app/, web/) not scaffolded yet.
 
-## Verified now
-- Core: 7 stdlib tests (property/determinism/infeasible) + demo.
-- API: 5 FastAPI TestClient tests — 401/403 (SC-004), 200 happy path, 422 infeasible. **12/12 pass.**
-  Deps installed in `.venv` (fastapi, pydantic, httpx, pytest); run `.venv/Scripts/python -m pytest -q`.
+## Verified now (18/18 pass — `.venv/Scripts/python -m pytest -q`)
+- Core (stdlib): property/determinism/infeasible on the mock engine + demo.
+- API (FastAPI TestClient): 401 / 403 role (SC-004) / **403 non-owner + 404 unknown cohort (BR-13, IDOR)** / 200 / 422.
+- **Real OR-Tools CP-SAT engine** (app/matching/ortools_engine.py): 30 generated cohorts never
+  violate R1/R2/R7, determinism (R8), infeasible reported. Same interface as the mock.
+- Deps in `.venv`: fastapi, pydantic, httpx, pytest, ortools. Route defaults to the OR-Tools engine.
 
 ## Next steps
 

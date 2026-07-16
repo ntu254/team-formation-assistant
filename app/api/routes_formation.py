@@ -11,14 +11,10 @@ from pydantic import BaseModel  # type: ignore[import-not-found]
 
 from ..domain.models import Constraints, Project, Skill, Student
 from ..matching.engine import MatchingEngine
-from ..matching.mock_engine import MockMatchingEngine
 from ..repositories import CohortRepository
-from .deps import Principal, get_cohort_repo, require_role
+from .deps import Principal, get_cohort_repo, get_engine, require_role
 
 router = APIRouter(prefix="/v1", tags=["formation"])
-
-# Inject the engine (mock now; OR-Tools later — same interface).
-_engine: MatchingEngine = MockMatchingEngine()
 
 
 class SkillIn(BaseModel):
@@ -52,6 +48,7 @@ async def run_formation(
     body: RunFormationIn,
     principal: Principal = Depends(require_role("lecturer")),
     cohorts: CohortRepository = Depends(get_cohort_repo),
+    engine: MatchingEngine = Depends(get_engine),
 ) -> dict:
     # Object-level authorization (BR-13, guards IDOR/BOLA): a lecturer may only run a
     # formation for a cohort they own.
@@ -75,7 +72,7 @@ async def run_formation(
     ]
     project = Project(id=body.project_id, min_size=body.min_size, max_size=body.max_size)
     cons = Constraints(must_pair=list(body.must_pair), cannot_pair=list(body.cannot_pair))
-    formation = _engine.form_teams(students, project, cons, seed=body.seed)
+    formation = engine.form_teams(students, project, cons, seed=body.seed)
 
     if formation.status == "infeasible":
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, {"conflicts": formation.conflicts})

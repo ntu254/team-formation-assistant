@@ -10,9 +10,18 @@ from dataclasses import dataclass
 
 from fastapi import Depends, Header, HTTPException, status  # type: ignore[import-not-found]
 
+from ..matching.engine import MatchingEngine
 from ..repositories import CohortRepository, InMemoryCohortRepository
 
 ROLES = ("student", "lecturer", "admin")
+
+
+def get_engine() -> MatchingEngine:
+    """Production default: the real OR-Tools engine (free, OSS, local). Lazy-imported so the
+    API module does not require OR-Tools at import time; tests override this with the mock."""
+    from ..matching.ortools_engine import OrToolsMatchingEngine
+
+    return OrToolsMatchingEngine(max_time_s=5.0)
 
 # Default repo (in-memory). Tests and real infra override this via FastAPI dependency_overrides
 # or by swapping the provider for a Postgres-backed CohortRepository.
