@@ -10,7 +10,17 @@ from dataclasses import dataclass
 
 from fastapi import Depends, Header, HTTPException, status  # type: ignore[import-not-found]
 
+from ..repositories import CohortRepository, InMemoryCohortRepository
+
 ROLES = ("student", "lecturer", "admin")
+
+# Default repo (in-memory). Tests and real infra override this via FastAPI dependency_overrides
+# or by swapping the provider for a Postgres-backed CohortRepository.
+_cohort_repo: CohortRepository = InMemoryCohortRepository()
+
+
+def get_cohort_repo() -> CohortRepository:
+    return _cohort_repo
 
 
 @dataclass

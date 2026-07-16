@@ -9,7 +9,10 @@ import unittest
 try:
     from fastapi.testclient import TestClient
 
+    from app.api.deps import get_cohort_repo
     from app.api.main import app
+    from app.domain.models import Cohort
+    from app.repositories import InMemoryCohortRepository
 
     _HAVE_FASTAPI = True
 except Exception:  # pragma: no cover - skipped when deps absent
@@ -34,7 +37,13 @@ def _body(n: int = 9, **over) -> dict:
 @unittest.skipUnless(_HAVE_FASTAPI, "fastapi not installed")
 class TestApiAuthz(unittest.TestCase):
     def setUp(self) -> None:
+        # Seed a repo where cohort "c1" is owned by lecturer "lec1".
+        repo = InMemoryCohortRepository([Cohort(id="c1", owner_id="lec1", name="Capstone 2026")])
+        app.dependency_overrides[get_cohort_repo] = lambda: repo
         self.client = TestClient(app)
+
+    def tearDown(self) -> None:
+        app.dependency_overrides.clear()
 
     def test_health_ok(self) -> None:
         r = self.client.get("/health")
@@ -69,6 +78,21 @@ class TestApiAuthz(unittest.TestCase):
             headers={"X-User-Id": "lec1", "X-Role": "lecturer"},
         )
         self.assertEqual(r.status_code, 422)
+
+    def test_lecturer_not_owner_forbidden_403(self) -> None:
+        # lec2 is a lecturer but does NOT own cohort c1 (object-level authz, BR-13 / IDOR guard)
+        r = self.client.post(
+            "/v1/cohorts/c1/formations", json=_body(9),
+            headers={"X-User-Id": "lec2", "X-Role": "lecturer"},
+        )
+        self.assertEqual(r.status_code, 403)
+
+    def test_unknown_cohort_404(self) -> None:
+        r = self.client.post(
+            "/v1/cohorts/does-not-exist/formations", json=_body(9),
+            headers={"X-User-Id": "lec1", "X-Role": "lecturer"},
+        )
+        self.assertEqual(r.status_code, 404)
 
 
 if __name__ == "__main__":

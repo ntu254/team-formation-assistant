@@ -81,3 +81,11 @@ class Formation:
     unassignable: list[tuple[str, str]] = field(default_factory=list)  # (student_id, reason)
     conflicts: list[str] = field(default_factory=list)  # why infeasible
     balance: float = 0.0
+
+
+@dataclass
+class Cohort:
+    """A group of students owned by one lecturer (object-level authz anchor, BR-13)."""
+    id: str
+    owner_id: str  # the lecturer (user id) who owns this cohort
+    name: str = ""

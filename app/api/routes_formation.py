@@ -12,7 +12,8 @@ from pydantic import BaseModel  # type: ignore[import-not-found]
 from ..domain.models import Constraints, Project, Skill, Student
 from ..matching.engine import MatchingEngine
 from ..matching.mock_engine import MockMatchingEngine
-from .deps import Principal, require_role
+from ..repositories import CohortRepository
+from .deps import Principal, get_cohort_repo, require_role
 
 router = APIRouter(prefix="/v1", tags=["formation"])
 
@@ -50,8 +51,16 @@ async def run_formation(
     cohort_id: str,
     body: RunFormationIn,
     principal: Principal = Depends(require_role("lecturer")),
+    cohorts: CohortRepository = Depends(get_cohort_repo),
 ) -> dict:
-    # TODO(next iteration): verify `principal` owns `cohort_id` against the datastore (BR-13).
+    # Object-level authorization (BR-13, guards IDOR/BOLA): a lecturer may only run a
+    # formation for a cohort they own.
+    cohort = cohorts.get(cohort_id)
+    if cohort is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "cohort not found")
+    if cohort.owner_id != principal.user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "not the cohort owner")
+
     students = [
         Student(
             id=s.id,
