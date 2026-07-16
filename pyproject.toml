@@ -1,0 +1,36 @@
+[project]
+name = "team-formation-assistant"
+version = "0.1.0"
+description = "Auto-groups students into balanced project teams; AI suggests optimal formations."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111",
+    "uvicorn>=0.30",
+    "pydantic>=2.7",
+    # Real optimizer (free, OSS, runs locally — reuse over rebuild). Mock engine needs none.
+    "ortools>=9.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "mypy>=1.10",
+    "ruff>=0.5",
+    "httpx>=0.27",  # for FastAPI TestClient
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# NOTE: the domain + matching core is pure stdlib and is verified with
+#   python -m unittest discover -s tests
+# without installing anything. FastAPI/OR-Tools are needed only for the API and the real
+# optimizer (next iteration): install with `uv sync` or `pip install -e .[dev]`.

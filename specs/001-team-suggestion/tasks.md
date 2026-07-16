@@ -31,8 +31,9 @@
 
 ## Phase 5 — Polish
 
+- [x] T091 API authz + happy-path + infeasible tests (FastAPI TestClient) — tests/test_api_authz.py (SC-004)
 - [ ] T090 Replace mock with OR-Tools engine behind the same interface (next feature)
-- [ ] T091 API + e2e tests once deps installed (next iteration)
+- [ ] T092 Wire cohort-ownership check to the datastore (BR-13) + web e2e
 
 ## Coverage
 
