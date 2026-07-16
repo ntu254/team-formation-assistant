@@ -10,7 +10,7 @@
 | Experience | Prior relevant experience (projects, internships), weighted into balance. |
 | Availability | The time slots a student is free (used for schedule overlap). |
 | Preference | Soft wish: teammates to be with, topics, or role. May be traded off. |
-| Desired role | The project role a student wants (e.g. lead, backend, frontend, design, research). |
+| Desired role | The role a student wants in the team. Free-form, configured per course/project (not software-specific); generic default suggestions: leader, coordinator, researcher, presenter, member, other. |
 | Constraint | A rule on formation. **Hard** (must hold) or **soft** (maximize if possible). |
 | Cohort | A group of students formed together for a course/term. |
 | Project | A unit of work needing a team; declares size band and required skills/roles. |

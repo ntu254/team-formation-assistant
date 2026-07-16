@@ -31,8 +31,10 @@
 
 ## Phase 5 — Polish
 
-- [ ] T090 Replace mock with OR-Tools engine behind the same interface (next feature)
-- [ ] T091 API + e2e tests once deps installed (next iteration)
+- [x] T091 API authz + happy-path + infeasible tests (FastAPI TestClient) — tests/test_api_authz.py (SC-004)
+- [x] T092 Cohort ownership check + repository (BR-13) — app/repositories.py, route 404/403 (IDOR guard)
+- [x] T090 Real OR-Tools CP-SAT engine behind the same interface — app/matching/ortools_engine.py
+- [ ] T093 Postgres CohortRepository + web e2e (next iteration)
 
 ## Coverage
 

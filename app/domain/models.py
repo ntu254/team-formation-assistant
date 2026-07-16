@@ -10,8 +10,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-# Desired roles are a fixed set (assumption A-04).
-ROLES = ("lead", "backend", "frontend", "design", "research", "other")
+# Desired role is domain-neutral and configured per course/project — NOT software-specific.
+# This is only a generic default vocabulary (assumption A-04, needs confirmation); a course can
+# supply its own (e.g. lab roles for a science capstone, business roles for a marketing project).
+# The field itself is a free-form string; this tuple is just a suggestion list.
+DEFAULT_ROLES = ("leader", "coordinator", "researcher", "presenter", "member", "other")
 
 
 @dataclass(frozen=True)
@@ -81,3 +84,11 @@ class Formation:
     unassignable: list[tuple[str, str]] = field(default_factory=list)  # (student_id, reason)
     conflicts: list[str] = field(default_factory=list)  # why infeasible
     balance: float = 0.0
+
+
+@dataclass
+class Cohort:
+    """A group of students owned by one lecturer (object-level authz anchor, BR-13)."""
+    id: str
+    owner_id: str  # the lecturer (user id) who owns this cohort
+    name: str = ""
