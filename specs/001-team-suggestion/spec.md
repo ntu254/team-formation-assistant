@@ -65,8 +65,9 @@ a human may veto it. See BRD Open Questions.
 - **A-02 Team size band:** default `min = 3, max = 5`. (OQ-04)
 - **A-03 Min common availability:** at least `1` shared weekly slot counts as enough (soft).
 - **A-04 Data model:** proficiency `1..5`; competency = mean proficiency + capped experience
-  bonus; availability as weekly slots; desired role in {lead, backend, frontend, design,
-  research, other}.
+  bonus; availability as weekly slots; desired role is a **free-form string configured per
+  course/project** (NOT software-specific), with a generic default suggestion list
+  {leader, coordinator, researcher, presenter, member, other}.
 - **A-05 Forbidden signals:** gender, ethnicity, religion, health, age are never matching
   signals. (OQ-05)
 - Default weights let a lecturer run without tuning; v1 forms teams within one cohort/project.

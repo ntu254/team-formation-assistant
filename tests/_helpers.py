@@ -17,7 +17,7 @@ def make_cohort(n: int, rng: random.Random) -> list[Student]:
                 name=f"Student {i}",
                 skills=skills,
                 experience_years=float(rng.choice([0, 1, 2, 3])),
-                desired_role=rng.choice(("lead", "backend", "frontend", "design", "research", "other")),
+                desired_role=rng.choice(("leader", "coordinator", "researcher", "presenter", "member", "other")),
             )
         )
     return students

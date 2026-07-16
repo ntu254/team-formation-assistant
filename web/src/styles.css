@@ -1,0 +1,359 @@
+/* Team Formation Assistant — design system.
+   Direction: calm academic operations tool — trustworthy, clear, dense-enough for repeated use.
+   Deliberate teal accent (not an AI purple/blue gradient). Tokens as CSS variables. */
+
+:root {
+  color-scheme: light dark;
+
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #fbfcfd;
+  --border: #e4e7ec;
+  --border-strong: #d3d8e0;
+  --text: #161b22;
+  --muted: #5b6472;
+  --faint: #8a93a1;
+
+  --accent: #0f766e;         /* teal-700 */
+  --accent-hover: #0b5c55;
+  --accent-weak: #e7f4f2;
+  --on-accent: #ffffff;
+
+  --success: #157347;
+  --warn: #b45309;
+  --danger: #b42318;
+  --danger-weak: #fdeceb;
+
+  --ring: color-mix(in srgb, var(--accent) 45%, transparent);
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 14px rgba(16, 24, 40, 0.08);
+
+  --r: 10px;
+  --r-sm: 7px;
+  --space: 16px;
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1319;
+    --surface: #161b22;
+    --surface-2: #1a2029;
+    --border: #262d38;
+    --border-strong: #323a47;
+    --text: #e7ebf0;
+    --muted: #9aa4b2;
+    --faint: #6b7482;
+    --accent: #2dd4bf;
+    --accent-hover: #5eead4;
+    --accent-weak: #10312d;
+    --on-accent: #04211d;
+    --danger: #f97066;
+    --danger-weak: #2a1614;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.45);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Layout */
+.app-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.app-header__inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.app-header__mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  background: var(--accent-weak);
+  color: var(--accent);
+}
+.app-header h1 {
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+.app-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Panels (cards) */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+}
+.panel > h2 {
+  font-size: 15px;
+  font-weight: 640;
+  letter-spacing: -0.005em;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel__hint {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Forms */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+.field--row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+label {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--muted);
+}
+input,
+select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  padding: 9px 11px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+input:hover,
+select:hover {
+  border-color: var(--accent);
+}
+input:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  margin: 0 0 14px;
+}
+legend {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 6px;
+}
+.chips {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chips li {
+  font-size: 12.5px;
+  background: var(--accent-weak);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buttons */
+.btn {
+  font: inherit;
+  font-weight: 560;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  padding: 9px 14px;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 80ms ease;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.btn--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.btn--primary:hover {
+  background: var(--accent-hover);
+}
+.btn--primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.btn--ghost {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.btn--ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Results */
+.result-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.stat {
+  font-variant-numeric: tabular-nums;
+  font-weight: 640;
+}
+.badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+  text-transform: capitalize;
+}
+.teams {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+.team-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  background: var(--surface-2);
+}
+.team-card__title {
+  font-weight: 620;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.team-card__count {
+  font-size: 12px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.team-card__members {
+  margin: 6px 0;
+  color: var(--text);
+}
+.team-card__rationale {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-style: normal;
+}
+
+/* Feedback states */
+.alert {
+  margin: 14px 0 0;
+  padding: 11px 13px;
+  border-radius: var(--r-sm);
+  background: var(--danger-weak);
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  font-size: 13.5px;
+}
+.status {
+  margin: 10px 0 0;
+  color: var(--success);
+  font-size: 13px;
+}
+.empty {
+  margin: 16px 0 0;
+  padding: 20px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  text-align: center;
+  font-size: 13.5px;
+}
+
+/* Spinner (honors reduced motion) */
+.spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--on-accent) 45%, transparent);
+  border-top-color: var(--on-accent);
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

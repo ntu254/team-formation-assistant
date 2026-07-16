@@ -14,7 +14,7 @@ from app.matching.mock_engine import MockMatchingEngine
 
 def _build_cohort(n: int, seed: int) -> list[Student]:
     rng = random.Random(seed)
-    roles = ("lead", "backend", "frontend", "design", "research", "other")
+    roles = ("leader", "coordinator", "researcher", "presenter", "member", "other")
     out = []
     for i in range(n):
         skills = [Skill(f"skill{j}", rng.randint(1, 5)) for j in range(rng.randint(1, 4))]

@@ -1,31 +1,28 @@
-// Minimal placeholder for the lecturer console (scaffold). Requires `npm ci` to build/run.
-// Next iteration: profile intake (student) + run/review/override formation (lecturer),
-// calling POST /v1/cohorts/{id}/formations. UI must meet WCAG 2.1 AA (NFR-08).
-import { useState } from "react";
+import FormationConsole from "./components/FormationConsole";
+import { UsersIcon } from "./components/icons";
+import ProfileForm from "./components/ProfileForm";
 
-type Team = { id: string; members: string[]; rationale: string };
-
+/** App shell: student profile intake + lecturer formation console.
+ *  Authorization is enforced server-side (app/api); the UI never gates security by itself.
+ *  Targets WCAG 2.1 AA (NFR-08): semantic landmarks, labelled inputs, visible focus. */
 export default function App() {
-  const [teams, setTeams] = useState<Team[]>([]);
-
-  async function runFormation() {
-    // TODO(next iteration): collect cohort input and post to the API.
-    // const res = await fetch(`/v1/cohorts/${cohortId}/formations`, { method: "POST", ... });
-    setTeams([]);
-  }
-
   return (
-    <main>
-      <h1>Team Formation Assistant</h1>
-      <p>Lecturer console — placeholder. Run a formation, review teams and rationale, override, commit.</p>
-      <button onClick={runFormation}>Run formation</button>
-      <ul>
-        {teams.map((t) => (
-          <li key={t.id}>
-            <strong>{t.id}</strong>: {t.members.join(", ")} — {t.rationale}
-          </li>
-        ))}
-      </ul>
-    </main>
+    <>
+      <header className="app-header">
+        <div className="app-header__inner">
+          <span className="app-header__mark">
+            <UsersIcon />
+          </span>
+          <div>
+            <h1>Team Formation Assistant</h1>
+            <p>AI suggests balanced teams — a lecturer reviews, overrides, and commits.</p>
+          </div>
+        </div>
+      </header>
+      <main className="container">
+        <ProfileForm />
+        <FormationConsole />
+      </main>
+    </>
   );
 }
