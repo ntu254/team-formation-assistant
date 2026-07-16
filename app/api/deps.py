@@ -6,6 +6,7 @@ that reads a role header for local development; replace with a real auth provide
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 from fastapi import Depends, Header, HTTPException, status  # type: ignore[import-not-found]
@@ -23,12 +24,25 @@ def get_engine() -> MatchingEngine:
 
     return OrToolsMatchingEngine(max_time_s=5.0)
 
-# Default repo (in-memory). Tests and real infra override this via FastAPI dependency_overrides
-# or by swapping the provider for a Postgres-backed CohortRepository.
-_cohort_repo: CohortRepository = InMemoryCohortRepository()
+# Repo provider: SQL (Postgres/SQLite) when DATABASE_URL is set, else in-memory for local dev.
+# Tests override this via FastAPI dependency_overrides. Built lazily so the API module does not
+# require SQLAlchemy at import time.
+_cohort_repo: CohortRepository | None = None
 
 
 def get_cohort_repo() -> CohortRepository:
+    global _cohort_repo
+    if _cohort_repo is None:
+        url = os.environ.get("DATABASE_URL")
+        if url:
+            from ..infra.db import init_db, make_engine, make_session_factory
+            from ..infra.sql_repository import SqlCohortRepository
+
+            engine = make_engine(url)
+            init_db(engine)
+            _cohort_repo = SqlCohortRepository(make_session_factory(engine))
+        else:
+            _cohort_repo = InMemoryCohortRepository()
     return _cohort_repo
 
 
