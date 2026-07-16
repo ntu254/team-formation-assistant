@@ -15,7 +15,10 @@ loops_paused: false
 
 Project bootstrapped on Forge Harness. System-memory (architecture, domain, RBAC,
 constitution, API contract, testing, code-style) is filled and passes `--strict`.
-First feature spec (`specs/001-team-suggestion/`) is being written under SDD.
+**BRD (`docs/BRD.md`) and PRD (`docs/PRD.md`) authored** — problem, objectives,
+stakeholders, scope, business rules (BR-01..13), capabilities (BC-01..08), functional
+(FR-01..19) and non-functional (NFR-01..11) requirements, fully traced to domain R1..R8.
+First feature spec (`specs/001-team-suggestion/`) drafted under SDD.
 
 ## Blockers
 

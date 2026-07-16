@@ -37,3 +37,5 @@ conventions:
   - "The lecturer's override is final - AI suggests, a human decides the committed teams."
   - "Formation runs are reproducible (same inputs + seed give same output) and logged."
   - "Reuse OR-Tools / scipy before hand-rolling an optimizer (ponytail)."
+  - "Free-first: prefer completely-free third-party services and OSS libraries over rebuilding."
+  - "Privacy gate on reuse: student PII stays on OSS/self-hosted infra; free hosted services only for non-PII or compliant, region-checked cases (see docs/architecture.md)."

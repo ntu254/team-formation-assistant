@@ -40,6 +40,32 @@ React + TypeScript frontend, PostgreSQL, OR-Tools optimizer.
 3. **Review and override** — lecturer inspects suggested teams and edits assignments; the
    override is persisted as the committed result and always wins over the AI.
 
+## Technology strategy — free-first, reuse over rebuild
+
+Prefer completely-free third-party services and open-source libraries before writing custom
+code (ponytail reuse ladder). Do **not** rebuild what a mature free tool already does.
+
+**Privacy caveat (non-negotiable, ties to the constitution / BR-08, BR-09, CON-01):**
+student personal data must not be sent to a third-party hosted service unless that service is
+privacy-compliant and approved. Free **local / open-source** libraries (run on our own
+infra) are always safe; free **hosted** services are acceptable only for parts that do not
+process student PII, or when data is anonymized/compliant.
+
+Candidate free/reuse options (inferred, needs confirmation):
+
+| Concern | Free / OSS candidate | PII exposure |
+|---------|----------------------|--------------|
+| Optimization core | OR-Tools (Apache-2.0), PuLP / python-mip, NetworkX matching | None — runs locally |
+| Auth | Keycloak / Authlib (OSS self-host); Supabase / Firebase Auth (free tier) | Minimal; verify region/compliance |
+| Database | PostgreSQL (OSS); Neon / Supabase Postgres (free tier) | Stores PII — must be compliant/region-checked |
+| Backend hosting | Render / Fly.io / Railway free tier | Processes PII — verify compliance |
+| Frontend hosting | Vercel / Netlify / Cloudflare Pages (free) | None (static) |
+| Rationale text | Template-based (no service) preferred; a hosted LLM only if no PII is sent | Avoid sending student data |
+
+Rule of thumb: **optimization and any PII processing use free OSS running on our own infra;**
+free hosted services are fine for static hosting and non-PII concerns. Final choice of each
+service is an open question for the team (needs confirmation).
+
 ## Diagram
 
 <!-- Add a Mermaid C4/container diagram via the diagram-architecture skill when useful. -->
