@@ -19,7 +19,7 @@ commands:
   test_e2e: "playwright test"
   build: "npm --prefix web run build"
   format_cmd: "ruff format"
-  run: "uvicorn app.main:app --reload"
+  run: "uvicorn app.api.main:app --reload"
 
 docs:
   architecture: docs/architecture.md
