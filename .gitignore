@@ -6,3 +6,4 @@ web/dist/
 .forge/harness/
 tfa.db
 service-account.json
+.env
