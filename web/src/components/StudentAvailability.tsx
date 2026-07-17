@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, AlertTriangle, Copy, X } from "lucide-react";
-import { DAYS, SLOTS, SLOT_LABELS, getStudent } from "../data/mock";
+import { getStudent } from "../data/mock";
+import { DAYS, SLOTS, SLOT_LABELS } from "../types/constants";
 import { Button } from "./ui";
 
 export default function StudentAvailability({ navigate: _navigate }: { navigate?: (r: string) => void }) {

@@ -13,7 +13,8 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { TEAMS, getStudent, DAYS, SLOTS } from "../data/mock";
+import { TEAMS, getStudent } from "../data/mock";
+import { DAYS, SLOTS } from "../types/constants";
 import { Student, TeamRole } from "../types/ui";
 import { Avatar, RoleBadge, SkillChip, Badge, toast } from "./ui";
 

@@ -7,7 +7,8 @@ import {
   Lock,
   PartyPopper,
 } from "lucide-react";
-import { getStudent, DAYS, SLOTS } from "../data/mock";
+import { getStudent } from "../data/mock";
+import { DAYS, SLOTS } from "../types/constants";
 import { SKILL_CATEGORIES } from "../types/ui";
 import { Avatar, SkillChip, RoleBadge, Button, triggerConfetti } from "./ui";
 

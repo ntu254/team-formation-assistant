@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search, Plus, X, ChevronDown, ChevronRight, FileText } from "lucide-react";
-import { SKILL_CATALOG, getStudent } from "../data/mock";
+import { getStudent } from "../data/mock";
+import { SKILL_CATALOG } from "../types/constants";
 import { SKILL_CATEGORIES, SkillCategory, StudentSkill, Proficiency } from "../types/ui";
 import { proficiencyLabel, EmptyState, toast } from "./ui";
 
