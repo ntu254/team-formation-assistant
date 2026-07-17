@@ -30,7 +30,7 @@ class TestApiCohorts(unittest.TestCase):
         app.dependency_overrides.clear()
 
     def test_list_cohorts(self) -> None:
-        r = self.client.get("/v1/cohorts", headers={"X-User-Id": "lec1", "X-Role": "lecturer"})
+        r = self.client.get("/v1/cohorts", headers={"Authorization": "Bearer eyJ1aWQiOiAibGVjMSIsICJyb2xlIjogImxlY3R1cmVyIn0="})
         self.assertEqual(r.status_code, 200)
         cohorts = r.json()["cohorts"]
         self.assertEqual(len(cohorts), 1)
@@ -41,7 +41,7 @@ class TestApiCohorts(unittest.TestCase):
         r = self.client.post(
             "/v1/cohorts",
             json={"name": "New Cohort"},
-            headers={"X-User-Id": "lec1", "X-Role": "lecturer"}
+            headers={"Authorization": "Bearer eyJ1aWQiOiAibGVjMSIsICJyb2xlIjogImxlY3R1cmVyIn0="}
         )
         self.assertEqual(r.status_code, 200)
         data = r.json()

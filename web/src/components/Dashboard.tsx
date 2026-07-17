@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { getCohorts, createCohort } from "../api";
 import type { Cohort } from "../types";
 import { UsersIcon, PlayIcon } from "./icons";
+import { useAuth } from "../lib/auth";
 
-export default function Dashboard({ userId, onSelectCohort }: { userId: string, onSelectCohort: (cohortId: string) => void }) {
+export default function Dashboard({ onSelectCohort }: { onSelectCohort: (cohortId: string) => void }) {
+  const { token } = useAuth();
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
   const [newCohortName, setNewCohortName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -11,12 +13,12 @@ export default function Dashboard({ userId, onSelectCohort }: { userId: string, 
 
   useEffect(() => {
     loadCohorts();
-  }, [userId]);
+  }, [token]);
 
   async function loadCohorts() {
     setLoading(true);
     try {
-      const data = await getCohorts({ userId, role: "lecturer" });
+      const data = await getCohorts({ token: token! });
       setCohorts(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -29,7 +31,7 @@ export default function Dashboard({ userId, onSelectCohort }: { userId: string, 
     e.preventDefault();
     if (!newCohortName.trim()) return;
     try {
-      await createCohort(newCohortName, { userId, role: "lecturer" });
+      await createCohort(newCohortName, { token: token! });
       setNewCohortName("");
       await loadCohorts();
     } catch (err) {

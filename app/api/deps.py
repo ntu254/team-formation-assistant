@@ -7,9 +7,12 @@ that reads a role header for local development; replace with a real auth provide
 from __future__ import annotations
 
 import os
+import json
+import base64
 from dataclasses import dataclass
 
-from fastapi import Depends, Header, HTTPException, status  # type: ignore[import-not-found]
+from fastapi import Depends, Header, HTTPException, status, Request  # type: ignore[import-not-found]
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials # type: ignore[import-not-found]
 
 from ..matching.engine import MatchingEngine
 from ..repositories import CohortRepository, InMemoryCohortRepository, StudentRepository, InMemoryStudentRepository
@@ -70,13 +73,50 @@ class Principal:
     role: str
 
 
+security = HTTPBearer()
+
+def verify_firebase_token(token: str) -> dict:
+    import firebase_admin
+    from firebase_admin import auth
+    
+    if not firebase_admin._apps:
+        # Initialize default app if not already initialized
+        firebase_admin.initialize_app()
+    return auth.verify_id_token(token)
+
+def decode_mock_token(token: str) -> dict:
+    # A simple mock token can just be base64 JSON for dev purposes
+    try:
+        decoded = base64.b64decode(token).decode("utf-8")
+        return json.loads(decoded)
+    except Exception:
+        raise ValueError("Invalid mock token")
+
 async def current_principal(
-    x_user_id: str = Header(default=""),
-    x_role: str = Header(default=""),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> Principal:
-    if not x_user_id or x_role not in ROLES:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "authentication required")
-    return Principal(user_id=x_user_id, role=x_role)
+    token = credentials.credentials
+    use_firebase = os.environ.get("FIREBASE_PROJECT_ID") or os.environ.get("FIREBASE_CONFIG")
+    
+    try:
+        if use_firebase:
+            claims = verify_firebase_token(token)
+            uid = claims.get("uid")
+            role = claims.get("role", "student") # Default to student if no custom claim
+        else:
+            claims = decode_mock_token(token)
+            uid = claims.get("uid")
+            role = claims.get("role", "student")
+            
+        if not uid or role not in ROLES:
+            raise ValueError("Invalid claims")
+            
+        return Principal(user_id=uid, role=role)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Authentication failed: {str(e)}"
+        )
 
 
 def require_role(*allowed: str):

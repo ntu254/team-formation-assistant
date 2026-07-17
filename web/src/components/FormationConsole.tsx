@@ -4,9 +4,11 @@ import type { Formation, StudentIn, Team, Constraint } from "../types";
 import { CheckIcon, PlayIcon } from "./icons";
 
 import { getEnrolledStudents } from "../api";
+import { useAuth } from "../lib/auth";
 
 /** Lecturer console: run a formation and review suggested teams + rationale. */
-export default function FormationConsole({ cohortId, userId, onBack }: { cohortId: string, userId: string, onBack: () => void }) {
+export default function FormationConsole({ cohortId, onBack }: { cohortId: string, onBack: () => void }) {
+  const { token } = useAuth();
   const [minSize, setMinSize] = useState(3);
   const [maxSize, setMaxSize] = useState(5);
   const [formation, setFormation] = useState<Formation | null>(null);
@@ -38,7 +40,7 @@ export default function FormationConsole({ cohortId, userId, onBack }: { cohortI
     setError(null);
     setFormation(null);
     try {
-      const students = await getEnrolledStudents(cohortId, { userId, role: "lecturer" });
+      const students = await getEnrolledStudents(cohortId, { token: token! });
       if (students.length === 0) {
         throw new Error("No students enrolled in this cohort yet.");
       }
@@ -54,7 +56,7 @@ export default function FormationConsole({ cohortId, userId, onBack }: { cohortI
           cannot_pair: [],
           seed: 1,
         },
-        { userId, role: "lecturer" },
+        { token: token! },
       );
       setFormation(result);
     } catch (e) {

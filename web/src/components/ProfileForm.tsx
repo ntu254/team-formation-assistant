@@ -3,9 +3,10 @@ import { DEFAULT_ROLE_SUGGESTIONS } from "../types";
 import type { Role, SkillIn } from "../types";
 import { UsersIcon, CheckIcon } from "./icons";
 import { getProfile, updateProfile, enrollInCohort } from "../api";
+import { useAuth } from "../lib/auth";
 
 export default function ProfileForm() {
-  const userId = "u1"; // Hardcoded for demo until Auth is added
+  const { token } = useAuth();
   const [name, setName] = useState("");
   const [major, setMajor] = useState("");
   const [experience, setExperience] = useState(0);
@@ -30,7 +31,7 @@ export default function ProfileForm() {
   async function loadProfile() {
     setLoading(true);
     try {
-      const p = await getProfile({ userId, role: "student" });
+      const p = await getProfile({ token: token! });
       setName(p.name);
       setMajor(p.major || "");
       setExperience(p.experience_years);
@@ -67,7 +68,7 @@ export default function ProfileForm() {
         desired_role: desiredRole,
         availability: [], // Simplified for now
         skills
-      }, { userId, role: "student" });
+      }, { token: token! });
       setSaved(true);
     } catch (err) {
       alert("Error saving profile: " + (err instanceof Error ? err.message : String(err)));
@@ -82,7 +83,7 @@ export default function ProfileForm() {
     setEnrolling(true);
     setEnrollMsg("");
     try {
-      await enrollInCohort(cohortId.trim(), { userId, role: "student" });
+      await enrollInCohort(cohortId.trim(), { token: token! });
       setEnrollMsg("✅ Enrolled successfully!");
       setCohortId("");
     } catch (err) {

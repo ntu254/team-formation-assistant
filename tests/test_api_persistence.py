@@ -51,18 +51,18 @@ class TestApiPersistence(unittest.TestCase):
         app.dependency_overrides.clear()
 
     def test_get_formation(self) -> None:
-        r = self.client.get("/v1/formations/f1", headers={"X-User-Id": "lec1", "X-Role": "lecturer"})
+        r = self.client.get("/v1/formations/f1", headers={"Authorization": "Bearer eyJ1aWQiOiAibGVjMSIsICJyb2xlIjogImxlY3R1cmVyIn0="})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()["id"], "f1")
 
     def test_override_formation(self) -> None:
         body = {"teams": [{"id": "t1", "member_ids": ["u1", "u2", "u3"], "rationale": "override"}]}
-        r = self.client.post("/v1/formations/f1/override", json=body, headers={"X-User-Id": "lec1", "X-Role": "lecturer"})
+        r = self.client.post("/v1/formations/f1/override", json=body, headers={"Authorization": "Bearer eyJ1aWQiOiAibGVjMSIsICJyb2xlIjogImxlY3R1cmVyIn0="})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(self.repo.runs["f1"].teams[0].member_ids, ["u1", "u2", "u3"])
 
     def test_commit_formation(self) -> None:
-        r = self.client.post("/v1/formations/f1/commit", headers={"X-User-Id": "lec1", "X-Role": "lecturer"})
+        r = self.client.post("/v1/formations/f1/commit", headers={"Authorization": "Bearer eyJ1aWQiOiAibGVjMSIsICJyb2xlIjogImxlY3R1cmVyIn0="})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(self.repo.runs["f1"].status, "committed")
 

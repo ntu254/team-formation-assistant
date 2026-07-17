@@ -60,14 +60,14 @@ class TestApiAuthz(unittest.TestCase):
     def test_student_role_forbidden_403(self) -> None:
         r = self.client.post(
             "/v1/cohorts/c1/formations", json=_body(),
-            headers={"X-User-Id": "s1", "X-Role": "student"},
+            headers={"Authorization": "Bearer eyJ1aWQiOiAiczEiLCAicm9sZSI6ICJzdHVkZW50In0="},
         )
         self.assertEqual(r.status_code, 403)  # SC-004
 
     def test_lecturer_can_run_200(self) -> None:
         r = self.client.post(
             "/v1/cohorts/c1/formations", json=_body(9),
-            headers={"X-User-Id": "lec1", "X-Role": "lecturer"},
+            headers={"Authorization": "Bearer eyJ1aWQiOiAibGVjMSIsICJyb2xlIjogImxlY3R1cmVyIn0="},
         )
         self.assertEqual(r.status_code, 200)
         data = r.json()
@@ -79,7 +79,7 @@ class TestApiAuthz(unittest.TestCase):
     def test_infeasible_is_422(self) -> None:
         r = self.client.post(
             "/v1/cohorts/c1/formations", json=_body(2),  # 2 students, min_size 3
-            headers={"X-User-Id": "lec1", "X-Role": "lecturer"},
+            headers={"Authorization": "Bearer eyJ1aWQiOiAibGVjMSIsICJyb2xlIjogImxlY3R1cmVyIn0="},
         )
         self.assertEqual(r.status_code, 422)
 
@@ -87,14 +87,14 @@ class TestApiAuthz(unittest.TestCase):
         # lec2 is a lecturer but does NOT own cohort c1 (object-level authz, BR-13 / IDOR guard)
         r = self.client.post(
             "/v1/cohorts/c1/formations", json=_body(9),
-            headers={"X-User-Id": "lec2", "X-Role": "lecturer"},
+            headers={"Authorization": "Bearer eyJ1aWQiOiAibGVjMiIsICJyb2xlIjogImxlY3R1cmVyIn0="},
         )
         self.assertEqual(r.status_code, 403)
 
     def test_unknown_cohort_404(self) -> None:
         r = self.client.post(
             "/v1/cohorts/does-not-exist/formations", json=_body(9),
-            headers={"X-User-Id": "lec1", "X-Role": "lecturer"},
+            headers={"Authorization": "Bearer eyJ1aWQiOiAibGVjMSIsICJyb2xlIjogImxlY3R1cmVyIn0="},
         )
         self.assertEqual(r.status_code, 404)
 

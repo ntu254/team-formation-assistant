@@ -1,8 +1,7 @@
 import type { Formation, RunFormationIn, Constraint, Cohort, StudentIn } from "./types";
 
 export interface Auth {
-  userId: string;
-  role: string;
+  token: string;
 }
 
 /** Run a formation. Auth is sent as headers (dev stub; replaced by a bearer JWT in prod). */
@@ -15,8 +14,7 @@ export async function runFormation(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-User-Id": auth.userId,
-      "X-Role": auth.role,
+      Authorization: `Bearer ${auth.token}`,
     },
     body: JSON.stringify(body),
   });
@@ -41,8 +39,7 @@ export async function overrideFormation(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-User-Id": auth.userId,
-      "X-Role": auth.role,
+      Authorization: `Bearer ${auth.token}`,
     },
     body: JSON.stringify({ teams }),
   });
@@ -58,8 +55,7 @@ export async function commitFormation(
   const res = await fetch(`/v1/formations/${encodeURIComponent(formationId)}/commit`, {
     method: "POST",
     headers: {
-      "X-User-Id": auth.userId,
-      "X-Role": auth.role,
+      Authorization: `Bearer ${auth.token}`,
     },
   });
   if (!res.ok) {
@@ -73,8 +69,7 @@ export async function getConstraints(
 ): Promise<Constraint[]> {
   const res = await fetch(`/v1/cohorts/${encodeURIComponent(cohortId)}/constraints`, {
     headers: {
-      "X-User-Id": auth.userId,
-      "X-Role": auth.role,
+      Authorization: `Bearer ${auth.token}`,
     },
   });
   if (!res.ok) throw new Error("Failed to get constraints");
@@ -90,8 +85,7 @@ export async function approveConstraint(
   const res = await fetch(`/v1/cohorts/${encodeURIComponent(cohortId)}/constraints/${encodeURIComponent(constraintId)}/approve`, {
     method: "POST",
     headers: {
-      "X-User-Id": auth.userId,
-      "X-Role": auth.role,
+      Authorization: `Bearer ${auth.token}`,
     },
   });
   if (!res.ok) throw new Error("Failed to approve constraint");
@@ -105,8 +99,7 @@ export async function rejectConstraint(
   const res = await fetch(`/v1/cohorts/${encodeURIComponent(cohortId)}/constraints/${encodeURIComponent(constraintId)}/reject`, {
     method: "POST",
     headers: {
-      "X-User-Id": auth.userId,
-      "X-Role": auth.role,
+      Authorization: `Bearer ${auth.token}`,
     },
   });
   if (!res.ok) throw new Error("Failed to reject constraint");
@@ -115,8 +108,7 @@ export async function rejectConstraint(
 export async function getCohorts(auth: Auth): Promise<Cohort[]> {
   const res = await fetch("/v1/cohorts", {
     headers: {
-      "X-User-Id": auth.userId,
-      "X-Role": auth.role,
+      Authorization: `Bearer ${auth.token}`,
     },
   });
   if (!res.ok) throw new Error("Failed to get cohorts");
@@ -129,8 +121,7 @@ export async function createCohort(name: string, auth: Auth): Promise<Cohort> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-User-Id": auth.userId,
-      "X-Role": auth.role,
+      Authorization: `Bearer ${auth.token}`,
     },
     body: JSON.stringify({ name }),
   });
@@ -141,8 +132,7 @@ export async function createCohort(name: string, auth: Auth): Promise<Cohort> {
 export async function getProfile(auth: Auth): Promise<StudentIn> {
   const res = await fetch("/v1/profiles/me", {
     headers: {
-      "X-User-Id": auth.userId,
-      "X-Role": auth.role,
+      Authorization: `Bearer ${auth.token}`,
     },
   });
   if (!res.ok) throw new Error("Failed to get profile");
@@ -154,8 +144,7 @@ export async function updateProfile(profile: Omit<StudentIn, "id">, auth: Auth):
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      "X-User-Id": auth.userId,
-      "X-Role": auth.role,
+      Authorization: `Bearer ${auth.token}`,
     },
     body: JSON.stringify(profile),
   });
@@ -166,8 +155,7 @@ export async function enrollInCohort(cohortId: string, auth: Auth): Promise<void
   const res = await fetch(`/v1/cohorts/${encodeURIComponent(cohortId)}/enroll`, {
     method: "POST",
     headers: {
-      "X-User-Id": auth.userId,
-      "X-Role": auth.role,
+      Authorization: `Bearer ${auth.token}`,
     },
   });
   if (!res.ok) throw new Error("Failed to enroll in cohort");
@@ -176,8 +164,7 @@ export async function enrollInCohort(cohortId: string, auth: Auth): Promise<void
 export async function getEnrolledStudents(cohortId: string, auth: Auth): Promise<StudentIn[]> {
   const res = await fetch(`/v1/cohorts/${encodeURIComponent(cohortId)}/students`, {
     headers: {
-      "X-User-Id": auth.userId,
-      "X-Role": auth.role,
+      Authorization: `Bearer ${auth.token}`,
     },
   });
   if (!res.ok) throw new Error("Failed to get enrolled students");
