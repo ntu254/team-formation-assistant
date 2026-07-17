@@ -28,6 +28,12 @@ class SqlCohortRepository:
                 return None
             return Cohort(id=row.id, owner_id=row.owner_id, name=row.name)
 
+    def get_cohorts_by_owner(self, owner_id: str) -> list[Cohort]:
+        with self._session_factory() as session:
+            stmt = select(CohortRow).where(CohortRow.owner_id == owner_id)
+            rows = session.execute(stmt).scalars().all()
+            return [Cohort(id=r.id, owner_id=r.owner_id, name=r.name) for r in rows]
+
     def add(self, cohort: Cohort) -> None:
         with self._session_factory() as session:
             session.merge(CohortRow(id=cohort.id, owner_id=cohort.owner_id, name=cohort.name))

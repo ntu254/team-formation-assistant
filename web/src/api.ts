@@ -1,4 +1,4 @@
-import type { Formation, RunFormationIn, Constraint } from "./types";
+import type { Formation, RunFormationIn, Constraint, Cohort } from "./types";
 
 export interface Auth {
   userId: string;
@@ -110,4 +110,30 @@ export async function rejectConstraint(
     },
   });
   if (!res.ok) throw new Error("Failed to reject constraint");
+}
+
+export async function getCohorts(auth: Auth): Promise<Cohort[]> {
+  const res = await fetch("/v1/cohorts", {
+    headers: {
+      "X-User-Id": auth.userId,
+      "X-Role": auth.role,
+    },
+  });
+  if (!res.ok) throw new Error("Failed to get cohorts");
+  const data = await res.json();
+  return data.cohorts as Cohort[];
+}
+
+export async function createCohort(name: string, auth: Auth): Promise<Cohort> {
+  const res = await fetch("/v1/cohorts", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": auth.userId,
+      "X-Role": auth.role,
+    },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) throw new Error("Failed to create cohort");
+  return await res.json() as Cohort;
 }

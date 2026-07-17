@@ -14,6 +14,7 @@ from .domain.models import Cohort, FormationRun, Team, Constraint
 
 class CohortRepository(Protocol):
     def get(self, cohort_id: str) -> Cohort | None: ...
+    def get_cohorts_by_owner(self, owner_id: str) -> list[Cohort]: ...
     def add(self, cohort: Cohort) -> None: ...
     def save_formation_run(self, run_data: FormationRun) -> None: ...
     def get_formation_run(self, formation_id: str) -> FormationRun | None: ...
@@ -32,6 +33,9 @@ class InMemoryCohortRepository:
 
     def get(self, cohort_id: str) -> Cohort | None:
         return self._by_id.get(cohort_id)
+
+    def get_cohorts_by_owner(self, owner_id: str) -> list[Cohort]:
+        return [c for c in self._by_id.values() if c.owner_id == owner_id]
 
     def add(self, cohort: Cohort) -> None:
         self._by_id[cohort.id] = cohort

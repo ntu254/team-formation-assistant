@@ -16,9 +16,7 @@ function demoRoster(n: number): StudentIn[] {
 }
 
 /** Lecturer console: run a formation and review suggested teams + rationale. */
-export default function FormationConsole() {
-  const [cohortId, setCohortId] = useState("c1");
-  const [userId, setUserId] = useState("lec1");
+export default function FormationConsole({ cohortId, userId, onBack }: { cohortId: string, userId: string, onBack: () => void }) {
   const [count, setCount] = useState(9);
   const [minSize, setMinSize] = useState(3);
   const [maxSize, setMaxSize] = useState(5);
@@ -139,21 +137,15 @@ export default function FormationConsole() {
 
   return (
     <section className="panel" aria-labelledby="console-heading">
-      <h2 id="console-heading">
-        <PlayIcon size={15} /> Formation Console
-      </h2>
-      <p className="panel__hint">Run a formation for a cohort you own, then review the teams.</p>
-
-      <div className="field field--row">
-        <div className="field">
-          <label htmlFor="cohort">Cohort id</label>
-          <input id="cohort" value={cohortId} onChange={(e) => setCohortId(e.target.value)} />
-        </div>
-        <div className="field">
-          <label htmlFor="user">Acting lecturer id</label>
-          <input id="user" value={userId} onChange={(e) => setUserId(e.target.value)} />
-        </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2 id="console-heading">
+          <PlayIcon size={15} /> Formation Console
+        </h2>
+        <button type="button" className="btn btn--ghost" onClick={onBack}>&larr; Back to Dashboard</button>
       </div>
+      <p className="panel__hint">Run a formation for cohort <strong>{cohortId}</strong>, then review the teams.</p>
+
+
 
       <div className="field field--row">
         <div className="field">

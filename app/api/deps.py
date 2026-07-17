@@ -33,7 +33,7 @@ _cohort_repo: CohortRepository | None = None
 def get_cohort_repo() -> CohortRepository:
     global _cohort_repo
     if _cohort_repo is None:
-        url = os.environ.get("DATABASE_URL")
+        url = os.environ.get("DATABASE_URL", "sqlite:///./tfa.db")
         if url:
             from ..infra.db import init_db, make_engine, make_session_factory
             from ..infra.sql_repository import SqlCohortRepository

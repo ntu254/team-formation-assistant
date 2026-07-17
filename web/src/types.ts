@@ -57,3 +57,10 @@ export interface Constraint {
   student_b: string;
   status: string;
 }
+
+export interface Cohort {
+  id: string;
+  name: string;
+  owner_id: string;
+}
+
