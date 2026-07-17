@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from fastapi import Depends, Header, HTTPException, status  # type: ignore[import-not-found]
 
 from ..matching.engine import MatchingEngine
-from ..repositories import CohortRepository, InMemoryCohortRepository
+from ..repositories import CohortRepository, InMemoryCohortRepository, StudentRepository, InMemoryStudentRepository
 
 ROLES = ("student", "lecturer", "admin")
 
@@ -44,6 +44,24 @@ def get_cohort_repo() -> CohortRepository:
         else:
             _cohort_repo = InMemoryCohortRepository()
     return _cohort_repo
+
+
+_student_repo: StudentRepository | None = None
+
+def get_student_repo() -> StudentRepository:
+    global _student_repo
+    if _student_repo is None:
+        url = os.environ.get("DATABASE_URL", "sqlite:///./tfa.db")
+        if url:
+            from ..infra.db import init_db, make_engine, make_session_factory
+            from ..infra.sql_repository import SqlStudentRepository
+
+            engine = make_engine(url)
+            init_db(engine)
+            _student_repo = SqlStudentRepository(make_session_factory(engine))
+        else:
+            _student_repo = InMemoryStudentRepository()
+    return _student_repo
 
 
 @dataclass

@@ -9,13 +9,20 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from .domain.models import Cohort, FormationRun, Team, Constraint
+from .domain.models import Cohort, FormationRun, Team, Constraint, Student
+
+class StudentRepository(Protocol):
+    def save(self, student: Student) -> None: ...
+    def get(self, student_id: str) -> Student | None: ...
+
 
 
 class CohortRepository(Protocol):
     def get(self, cohort_id: str) -> Cohort | None: ...
     def get_cohorts_by_owner(self, owner_id: str) -> list[Cohort]: ...
     def add(self, cohort: Cohort) -> None: ...
+    def enroll_student(self, cohort_id: str, student_id: str) -> None: ...
+    def get_enrolled_students(self, cohort_id: str, student_repo: StudentRepository) -> list[Student]: ...
     def save_formation_run(self, run_data: FormationRun) -> None: ...
     def get_formation_run(self, formation_id: str) -> FormationRun | None: ...
     def update_formation_run_teams(self, formation_id: str, teams: list[Team]) -> None: ...
@@ -60,3 +67,19 @@ class InMemoryCohortRepository:
 
     def log_audit_event(self, cohort_id: str, user_id: str, action: str, payload: str) -> None:
         pass
+
+    def enroll_student(self, cohort_id: str, student_id: str) -> None:
+        pass
+        
+    def get_enrolled_students(self, cohort_id: str, student_repo: StudentRepository) -> list[Student]:
+        return []
+
+class InMemoryStudentRepository:
+    def __init__(self, students: list[Student] | None = None) -> None:
+        self._by_id: dict[str, Student] = {s.id: s for s in (students or [])}
+        
+    def save(self, student: Student) -> None:
+        self._by_id[student.id] = student
+        
+    def get(self, student_id: str) -> Student | None:
+        return self._by_id.get(student_id)

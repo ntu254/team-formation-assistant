@@ -1,4 +1,4 @@
-import type { Formation, RunFormationIn, Constraint, Cohort } from "./types";
+import type { Formation, RunFormationIn, Constraint, Cohort, StudentIn } from "./types";
 
 export interface Auth {
   userId: string;
@@ -137,3 +137,51 @@ export async function createCohort(name: string, auth: Auth): Promise<Cohort> {
   if (!res.ok) throw new Error("Failed to create cohort");
   return await res.json() as Cohort;
 }
+
+export async function getProfile(auth: Auth): Promise<StudentIn> {
+  const res = await fetch("/v1/profiles/me", {
+    headers: {
+      "X-User-Id": auth.userId,
+      "X-Role": auth.role,
+    },
+  });
+  if (!res.ok) throw new Error("Failed to get profile");
+  return await res.json() as StudentIn;
+}
+
+export async function updateProfile(profile: Omit<StudentIn, "id">, auth: Auth): Promise<void> {
+  const res = await fetch("/v1/profiles/me", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": auth.userId,
+      "X-Role": auth.role,
+    },
+    body: JSON.stringify(profile),
+  });
+  if (!res.ok) throw new Error("Failed to update profile");
+}
+
+export async function enrollInCohort(cohortId: string, auth: Auth): Promise<void> {
+  const res = await fetch(`/v1/cohorts/${encodeURIComponent(cohortId)}/enroll`, {
+    method: "POST",
+    headers: {
+      "X-User-Id": auth.userId,
+      "X-Role": auth.role,
+    },
+  });
+  if (!res.ok) throw new Error("Failed to enroll in cohort");
+}
+
+export async function getEnrolledStudents(cohortId: string, auth: Auth): Promise<StudentIn[]> {
+  const res = await fetch(`/v1/cohorts/${encodeURIComponent(cohortId)}/students`, {
+    headers: {
+      "X-User-Id": auth.userId,
+      "X-Role": auth.role,
+    },
+  });
+  if (!res.ok) throw new Error("Failed to get enrolled students");
+  const data = await res.json();
+  return data.students as StudentIn[];
+}
+

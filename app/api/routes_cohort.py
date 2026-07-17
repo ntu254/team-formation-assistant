@@ -6,8 +6,8 @@ from pydantic import BaseModel
 import uuid
 
 from ..domain.models import Cohort
-from ..repositories import CohortRepository
-from .deps import Principal, get_cohort_repo, require_role
+from ..repositories import CohortRepository, StudentRepository
+from .deps import Principal, get_cohort_repo, get_student_repo, require_role
 
 router = APIRouter(prefix="/v1/cohorts", tags=["cohort"])
 
@@ -42,3 +42,49 @@ async def create_cohort(
     cohort = Cohort(id=cohort_id, owner_id=principal.user_id, name=body.name)
     cohorts.add(cohort)
     return {"id": cohort.id, "name": cohort.name, "owner_id": cohort.owner_id}
+
+
+@router.post("/{cohort_id}/enroll")
+async def enroll_student(
+    cohort_id: str,
+    principal: Principal = Depends(require_role("student", "admin")),
+    cohorts: CohortRepository = Depends(get_cohort_repo),
+) -> dict:
+    """Student enrolls in a cohort."""
+    cohort = cohorts.get(cohort_id)
+    if not cohort:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "cohort not found")
+        
+    cohorts.enroll_student(cohort_id, principal.user_id)
+    return {"status": "ok"}
+
+
+@router.get("/{cohort_id}/students")
+async def get_enrolled_students(
+    cohort_id: str,
+    principal: Principal = Depends(require_role("lecturer")),
+    cohorts: CohortRepository = Depends(get_cohort_repo),
+    students: StudentRepository = Depends(get_student_repo),
+) -> dict:
+    """Lecturer gets all students in a cohort."""
+    cohort = cohorts.get(cohort_id)
+    if not cohort or cohort.owner_id != principal.user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "not the cohort owner")
+        
+    enrolled = cohorts.get_enrolled_students(cohort_id, students)
+    
+    return {
+        "students": [
+            {
+                "id": s.id,
+                "name": s.name,
+                "major": s.major,
+                "experience_years": s.experience_years,
+                "desired_role": s.desired_role,
+                "availability": list(s.availability),
+                "skills": [{"name": k.name, "proficiency": k.proficiency} for k in s.skills]
+            }
+            for s in enrolled
+        ]
+    }
+

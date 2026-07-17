@@ -92,6 +92,40 @@ class AuditEventRow(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class StudentRow(Base):
+    __tablename__ = "students"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, default="")
+    major: Mapped[str] = mapped_column(String, default="")
+    experience_years: Mapped[float] = mapped_column(Float, default=0.0)
+    desired_role: Mapped[str] = mapped_column(String, default="other")
+    availability: Mapped[str] = mapped_column(String, default="[]")  # JSON list
+
+    skills: Mapped[list[StudentSkillRow]] = relationship(
+        "StudentSkillRow", back_populates="student", cascade="all, delete-orphan"
+    )
+
+
+class StudentSkillRow(Base):
+    __tablename__ = "student_skills"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    student_id: Mapped[str] = mapped_column(String, ForeignKey("students.id"))
+    skill_name: Mapped[str] = mapped_column(String)
+    proficiency: Mapped[int] = mapped_column(Integer)
+
+    student: Mapped[StudentRow] = relationship("StudentRow", back_populates="skills")
+
+
+class EnrollmentRow(Base):
+    __tablename__ = "enrollments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    student_id: Mapped[str] = mapped_column(String, ForeignKey("students.id"))
+    cohort_id: Mapped[str] = mapped_column(String, ForeignKey("cohorts.id"))
+
+
 def make_engine(url: str | None = None):
     return create_engine(url or DATABASE_URL, future=True)
 

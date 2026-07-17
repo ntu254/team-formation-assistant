@@ -3,21 +3,10 @@ import { runFormation, overrideFormation, commitFormation, getConstraints, appro
 import type { Formation, StudentIn, Team, Constraint } from "../types";
 import { CheckIcon, PlayIcon } from "./icons";
 
-/** Build a quick demo roster (u0..u{n-1}); a real console loads students from the cohort. */
-function demoRoster(n: number): StudentIn[] {
-  const roles = ["leader", "coordinator", "researcher", "presenter", "member", "other"];
-  return Array.from({ length: n }, (_, i) => ({
-    id: `u${i}`,
-    name: `Student ${i}`,
-    skills: [{ name: "core", proficiency: (i % 5) + 1 }],
-    experience_years: i % 3,
-    desired_role: roles[i % roles.length],
-  }));
-}
+import { getEnrolledStudents } from "../api";
 
 /** Lecturer console: run a formation and review suggested teams + rationale. */
 export default function FormationConsole({ cohortId, userId, onBack }: { cohortId: string, userId: string, onBack: () => void }) {
-  const [count, setCount] = useState(9);
   const [minSize, setMinSize] = useState(3);
   const [maxSize, setMaxSize] = useState(5);
   const [formation, setFormation] = useState<Formation | null>(null);
@@ -49,13 +38,18 @@ export default function FormationConsole({ cohortId, userId, onBack }: { cohortI
     setError(null);
     setFormation(null);
     try {
+      const students = await getEnrolledStudents(cohortId, { userId, role: "lecturer" });
+      if (students.length === 0) {
+        throw new Error("No students enrolled in this cohort yet.");
+      }
+      
       const result = await runFormation(
         cohortId,
         {
           project_id: "p1",
           min_size: minSize,
           max_size: maxSize,
-          students: demoRoster(count),
+          students: students,
           must_pair: [],
           cannot_pair: [],
           seed: 1,
@@ -148,10 +142,6 @@ export default function FormationConsole({ cohortId, userId, onBack }: { cohortI
 
 
       <div className="field field--row">
-        <div className="field">
-          <label htmlFor="count">Students (demo roster)</label>
-          <input id="count" type="number" inputMode="numeric" min={1} value={count} onChange={(e) => setCount(Number(e.target.value))} />
-        </div>
         <div className="field">
           <label htmlFor="min">Min team size</label>
           <input id="min" type="number" inputMode="numeric" min={1} value={minSize} onChange={(e) => setMinSize(Number(e.target.value))} />

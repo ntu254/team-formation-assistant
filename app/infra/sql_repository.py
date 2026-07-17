@@ -10,11 +10,13 @@ from sqlalchemy import select, update
 import json
 from uuid import uuid4
 
-from ..domain.models import Cohort, FormationRun, Team, Constraint
+from ..domain.models import Cohort, FormationRun, Team, Constraint, Student, Skill
 from .db import (
     CohortRow, FormationRunRow, FormationTeamRow,
-    CommittedResultRow, StudentConstraintRow, AuditEventRow
+    CommittedResultRow, StudentConstraintRow, AuditEventRow,
+    StudentRow, StudentSkillRow, EnrollmentRow
 )
+from ..repositories import StudentRepository
 
 
 class SqlCohortRepository:
@@ -174,4 +176,68 @@ class SqlCohortRepository:
             )
             session.add(row)
             session.commit()
+
+    def enroll_student(self, cohort_id: str, student_id: str) -> None:
+        with self._session_factory() as session:
+            stmt = select(EnrollmentRow).where(
+                EnrollmentRow.cohort_id == cohort_id,
+                EnrollmentRow.student_id == student_id
+            )
+            if not session.execute(stmt).scalar_one_or_none():
+                session.add(EnrollmentRow(student_id=student_id, cohort_id=cohort_id))
+                session.commit()
+                
+    def get_enrolled_students(self, cohort_id: str, student_repo: StudentRepository) -> list[Student]:
+        with self._session_factory() as session:
+            stmt = select(EnrollmentRow).where(EnrollmentRow.cohort_id == cohort_id)
+            enrollments = session.execute(stmt).scalars().all()
+            
+            students = []
+            for e in enrollments:
+                s = student_repo.get(e.student_id)
+                if s:
+                    students.append(s)
+            return students
+
+
+class SqlStudentRepository:
+    def __init__(self, session_factory: sessionmaker) -> None:
+        self._session_factory = session_factory
+
+    def save(self, student: Student) -> None:
+        with self._session_factory() as session:
+            row = session.get(StudentRow, student.id)
+            if not row:
+                row = StudentRow(id=student.id)
+                session.add(row)
+            
+            row.name = student.name
+            row.major = student.major
+            row.experience_years = student.experience_years
+            row.desired_role = student.desired_role
+            row.availability = json.dumps(list(student.availability))
+            
+            row.skills.clear()
+            for skill in student.skills:
+                row.skills.append(StudentSkillRow(
+                    skill_name=skill.name,
+                    proficiency=skill.proficiency
+                ))
+            session.commit()
+
+    def get(self, student_id: str) -> Student | None:
+        with self._session_factory() as session:
+            row = session.get(StudentRow, student_id)
+            if not row:
+                return None
+            return Student(
+                id=row.id,
+                name=row.name,
+                major=row.major,
+                experience_years=row.experience_years,
+                desired_role=row.desired_role,
+                availability=frozenset(json.loads(row.availability)),
+                skills=[Skill(s.skill_name, s.proficiency) for s in row.skills]
+            )
+
 
