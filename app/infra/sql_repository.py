@@ -140,6 +140,19 @@ class SqlCohortRepository:
             run.status = "committed"
             session.commit()
 
+    def add_constraint(self, constraint: Constraint) -> None:
+        with self._session_factory() as session:
+            row = StudentConstraintRow(
+                id=constraint.id,
+                cohort_id=constraint.cohort_id,
+                type=constraint.type,
+                student_a=constraint.student_a,
+                student_b=constraint.student_b,
+                status=constraint.status
+            )
+            session.add(row)
+            session.commit()
+
     def get_cohort_constraints(self, cohort_id: str) -> list[Constraint]:
         with self._session_factory() as session:
             stmt = select(StudentConstraintRow).where(StudentConstraintRow.cohort_id == cohort_id)

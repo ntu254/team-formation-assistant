@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { runFormation, overrideFormation, commitFormation, getConstraints, approveConstraint, rejectConstraint } from "../api";
+import { runFormation, overrideFormation, commitFormation, getConstraints, updateConstraintStatus } from "../api";
 import type { Formation, StudentIn, Team, Constraint } from "../types";
 import { CheckIcon, PlayIcon } from "./icons";
 
@@ -20,18 +20,18 @@ export default function FormationConsole({ cohortId, onBack }: { cohortId: strin
   const [constraints, setConstraints] = useState<Constraint[]>([]);
 
   useEffect(() => {
-    getConstraints(cohortId, { userId, role: "lecturer" })
+    getConstraints(cohortId, { token: token! })
       .then(setConstraints)
       .catch(() => setConstraints([]));
-  }, [cohortId, userId]);
+  }, [cohortId, token]);
 
   async function onApproveConstraint(c: Constraint) {
-    await approveConstraint(c.cohort_id, c.id, { userId, role: "lecturer" });
+    await updateConstraintStatus(c.cohort_id, c.id, "approved", { token: token! });
     setConstraints(constraints.map(x => x.id === c.id ? { ...x, status: "approved" } : x));
   }
 
   async function onRejectConstraint(c: Constraint) {
-    await rejectConstraint(c.cohort_id, c.id, { userId, role: "lecturer" });
+    await updateConstraintStatus(c.cohort_id, c.id, "rejected", { token: token! });
     setConstraints(constraints.map(x => x.id === c.id ? { ...x, status: "rejected" } : x));
   }
 
@@ -52,8 +52,8 @@ export default function FormationConsole({ cohortId, onBack }: { cohortId: strin
           min_size: minSize,
           max_size: maxSize,
           students: students,
-          must_pair: [],
-          cannot_pair: [],
+          must_pair: constraints.filter(c => c.type === 'must_pair' && c.status === 'approved').map(c => [c.student_a, c.student_b]),
+          cannot_pair: constraints.filter(c => c.type === 'cannot_pair' && c.status === 'approved').map(c => [c.student_a, c.student_b]),
           seed: 1,
         },
         { token: token! },
@@ -107,7 +107,7 @@ export default function FormationConsole({ cohortId, onBack }: { cohortId: strin
         member_ids: t.members,
         rationale: t.rationale
       }));
-      await overrideFormation(formation.id, teamsForApi, { userId, role: "lecturer" });
+      await overrideFormation(formation.id, teamsForApi, { token: token! });
       alert("Overrides saved successfully!");
     } catch (err) {
       alert(`Error saving overrides: ${err instanceof Error ? err.message : String(err)}`);
@@ -120,7 +120,7 @@ export default function FormationConsole({ cohortId, onBack }: { cohortId: strin
     if (!formation) return;
     setCommitting(true);
     try {
-      await commitFormation(formation.id, { userId, role: "lecturer" });
+      await commitFormation(formation.id, { token: token! });
       setCommitted(true);
       alert("Teams committed successfully!");
     } catch (err) {
@@ -140,6 +140,32 @@ export default function FormationConsole({ cohortId, onBack }: { cohortId: strin
         <button type="button" className="btn btn--ghost" onClick={onBack}>&larr; Back to Dashboard</button>
       </div>
       <p className="panel__hint">Run a formation for cohort <strong>{cohortId}</strong>, then review the teams.</p>
+
+      {/* ── Constraints Review ── */}
+      {constraints.length > 0 && (
+        <div style={{ marginBottom: "1.5rem", padding: "1rem", background: "#fffbeb", border: "1px solid #f59e0b", borderRadius: "8px" }}>
+          <h3 style={{ marginTop: 0, marginBottom: "0.75rem", color: "#92400e" }}>⚙️ Student Pairing Requests ({constraints.filter(c => c.status === "pending").length} pending)</h3>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {constraints.map(c => (
+              <li key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem", background: "white", borderRadius: "6px", border: "1px solid #e5e7eb" }}>
+                <span>
+                  <span style={{ fontWeight: 600, color: c.type === "must_pair" ? "#16a34a" : "#dc2626" }}>
+                    {c.type === "must_pair" ? "✅ Must Pair" : "❌ Cannot Pair"}
+                  </span>
+                  {" "}{c.student_a} ↔ {c.student_b}
+                  {" "}<span style={{ fontSize: "0.8rem", color: "#6b7280" }}>({c.status})</span>
+                </span>
+                {c.status === "pending" && (
+                  <span style={{ display: "flex", gap: "0.5rem" }}>
+                    <button className="btn btn--ghost" style={{ padding: "0.25rem 0.75rem", fontSize: "0.85rem" }} onClick={() => onApproveConstraint(c)}>👍 Approve</button>
+                    <button className="btn btn--ghost" style={{ padding: "0.25rem 0.75rem", fontSize: "0.85rem" }} onClick={() => onRejectConstraint(c)}>👎 Reject</button>
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
 
 

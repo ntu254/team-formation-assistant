@@ -4,6 +4,7 @@ import type { Role, SkillIn } from "../types";
 import { UsersIcon, CheckIcon } from "./icons";
 import { getProfile, updateProfile, enrollInCohort } from "../api";
 import { useAuth } from "../lib/auth";
+import StudentConstraints from "./StudentConstraints";
 
 export default function ProfileForm() {
   const { token } = useAuth();
@@ -187,6 +188,8 @@ export default function ProfileForm() {
         </form>
         {enrollMsg && <p style={{ marginTop: "1rem", fontSize: "0.9rem" }}>{enrollMsg}</p>}
       </section>
+
+      <StudentConstraints />
     </div>
   );
 }

@@ -74,7 +74,7 @@ class StudentConstraintRow(Base):
     __tablename__ = "student_constraints"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    cohort_id: Mapped[str] = mapped_column(String, index=True)
+    cohort_id: Mapped[str] = mapped_column(String, ForeignKey("cohorts.id"), index=True)
     type: Mapped[str] = mapped_column(String)  # must_pair, cannot_pair
     student_a: Mapped[str] = mapped_column(String)
     student_b: Mapped[str] = mapped_column(String)
@@ -124,6 +124,7 @@ class EnrollmentRow(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     student_id: Mapped[str] = mapped_column(String, ForeignKey("students.id"))
     cohort_id: Mapped[str] = mapped_column(String, ForeignKey("cohorts.id"))
+
 
 
 def make_engine(url: str | None = None):

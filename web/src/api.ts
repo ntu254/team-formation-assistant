@@ -172,3 +172,37 @@ export async function getEnrolledStudents(cohortId: string, auth: Auth): Promise
   return data.students as StudentIn[];
 }
 
+
+export async function getConstraints(cohortId: string, auth: Auth): Promise<Constraint[]> {
+  const res = await fetch(`/api/v1/cohorts/${cohortId}/constraints`, {
+    headers: {
+      Authorization: `Bearer ${auth.token}`,
+    },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return (await res.json()).constraints;
+}
+
+export async function addConstraint(cohortId: string, type: string, targetStudentId: string, auth: Auth): Promise<void> {
+  const res = await fetch(`/api/v1/cohorts/${cohortId}/constraints`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${auth.token}`,
+    },
+    body: JSON.stringify({ type, target_student_id: targetStudentId }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+export async function updateConstraintStatus(cohortId: string, constraintId: string, status: string, auth: Auth): Promise<void> {
+  const res = await fetch(`/api/v1/cohorts/${cohortId}/constraints/${constraintId}/status`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${auth.token}`,
+    },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
