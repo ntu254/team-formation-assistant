@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useEffect, useState } from "react";
 import {
   Pencil,
   AlertTriangle,
@@ -7,9 +7,12 @@ import {
   Lock,
   PartyPopper,
 } from "lucide-react";
-import { getStudent } from "../data/mock";
+import { useAuth } from "../lib/auth";
+import { useProfileData } from "../hooks/useProfileData";
+import { useCohortsData } from "../hooks/useCohortsData";
 import { DAYS, SLOTS } from "../types/constants";
-import { SKILL_CATEGORIES } from "../types/ui";
+import { SKILL_CATEGORIES, Proficiency } from "../types/ui";
+import type { StudentIn } from "../types";
 import { Avatar, SkillChip, RoleBadge, Button, triggerConfetti } from "./ui";
 
 function EditLink({ route, onNav }: { route: string; onNav?: (r: string) => void }) {
@@ -47,19 +50,49 @@ function Row({
 }
 
 export default function StudentReview({ navigate }: { navigate?: (r: string) => void }) {
-  const me = getStudent("s-1") || {
-    studentId: "SE184201",
-    name: "Phạm Thị Hoa",
-    major: "Software Engineering",
-    year: 3,
-    email: "hoapt.se1842@fpt.edu.vn",
-    bio: "Passionate about full-stack web development.",
-    skills: [],
-    availability: ["Mon-Morning", "Tue-Afternoon", "Wed-Evening", "Thu-Morning", "Fri-Afternoon"],
-    primaryRole: "Developer",
+  const { user } = useAuth();
+  const { profile } = useProfileData();
+  const { cohorts, fetchEnrolledStudents, fetchCohortConstraints } = useCohortsData();
+
+  const activeCohortId = cohorts[0]?.id || "cohort-1";
+  const [enrolledStudents, setEnrolledStudents] = useState<StudentIn[]>([]);
+  const [mustPair, setMustPair] = useState<string[]>([]);
+  const [cannotPair, setCannotPair] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (activeCohortId) {
+      fetchEnrolledStudents(activeCohortId).then(setEnrolledStudents);
+      fetchCohortConstraints(activeCohortId).then((constraints) => {
+        const must: string[] = [];
+        const cannot: string[] = [];
+        constraints.forEach((c) => {
+          if (c.type === "must_pair") must.push(c.student_b);
+          else if (c.type === "cannot_pair") cannot.push(c.student_b);
+        });
+        setMustPair(must);
+        setCannotPair(cannot);
+      });
+    }
+  }, [activeCohortId, fetchEnrolledStudents, fetchCohortConstraints]);
+
+  const me = {
+    studentId: profile?.id || user?.uid || "SE184201",
+    name: profile?.name || user?.displayName || "Phạm Thị Hoa",
+    major: profile?.major || "Software Engineering",
+    year: profile?.year || 3,
+    email: profile?.email || user?.email || "hoapt.se1842@fpt.edu.vn",
+    bio: (profile as any)?.bio || "Passionate about full-stack web development.",
+    skills: (profile?.skills || []).map((sk, i) => ({
+      skillId: `sk-${i}`,
+      name: sk.name,
+      category: "Frontend" as any,
+      proficiency: (sk.proficiency || 3) as Proficiency,
+    })),
+    availability: profile?.availability || [],
+    primaryRole: profile?.desired_role || "Developer",
     rankedRoles: ["Developer", "Leader"],
-    mustPair: ["s-2"],
-    cannotPair: ["s-3"],
+    mustPair,
+    cannotPair,
   };
   const [submitted, setSubmitted] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -207,7 +240,7 @@ export default function StudentReview({ navigate }: { navigate?: (r: string) => 
             {(me.mustPair || []).length ? (
               (me.mustPair || []).map((id) => (
                 <span key={id} style={{ display: "block", color: "var(--text)" }}>
-                  {getStudent(id)?.name || id}
+                  {enrolledStudents.find((s) => s.id === id)?.name || id}
                 </span>
               ))
             ) : (
@@ -219,7 +252,7 @@ export default function StudentReview({ navigate }: { navigate?: (r: string) => 
             {(me.cannotPair || []).length ? (
               (me.cannotPair || []).map((id) => (
                 <span key={id} style={{ display: "block", color: "var(--text)" }}>
-                  {getStudent(id)?.name || id}
+                  {enrolledStudents.find((s) => s.id === id)?.name || id}
                 </span>
               ))
             ) : (

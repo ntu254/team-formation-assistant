@@ -1,31 +1,41 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Lock, Save, AlertCircle, ChevronDown } from "lucide-react";
-import { getStudent } from "../data/mock";
+import { useAuth } from "../lib/auth";
+import { useProfileData } from "../hooks/useProfileData";
 import { Button, Spinner, toast } from "./ui";
 
 type SaveState = "saved" | "unsaved" | "saving";
 
 export default function StudentProfile({ navigate: _navigate }: { navigate?: (r: string) => void }) {
-  const student = getStudent("s-1") || {
-    studentId: "SE184201",
-    name: "Phạm Thị Hoa",
-    email: "hoapt.se1842@fpt.edu.vn",
-    major: "Software Engineering",
-    year: 3,
-    experience: 2,
-    bio: "Passionate about full-stack web development with React & Node.",
-  };
+  const { user } = useAuth();
+  const { profile, loading, saveProfile } = useProfileData();
+
+  const studentId = profile?.id || user?.uid || "SE184201";
+
   const [form, setForm] = useState({
-    name: student.name,
-    email: student.email,
-    major: student.major,
-    year: student.year,
-    experience: student.experience,
-    bio: student.bio,
+    name: profile?.name || user?.displayName || "Phạm Thị Hoa",
+    email: profile?.email || user?.email || "hoapt.se1842@fpt.edu.vn",
+    major: profile?.major || "Software Engineering",
+    year: profile?.year || 3,
+    experience: profile?.experience_years || 2,
+    bio: (profile as any)?.bio || "Passionate about full-stack web development with React & Node.",
   });
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const firstRender = useRef(true);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        name: profile.name || user?.displayName || "Phạm Thị Hoa",
+        email: profile.email || user?.email || "hoapt.se1842@fpt.edu.vn",
+        major: profile.major || "Software Engineering",
+        year: profile.year || 3,
+        experience: profile.experience_years || 0,
+        bio: (profile as any).bio || "",
+      });
+    }
+  }, [profile, user]);
 
   // autosave
   useEffect(() => {
@@ -35,9 +45,17 @@ export default function StudentProfile({ navigate: _navigate }: { navigate?: (r:
     }
     setSaveState("unsaved");
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
+    timer.current = setTimeout(async () => {
       setSaveState("saving");
-      setTimeout(() => setSaveState("saved"), 700);
+      await saveProfile({
+        name: form.name,
+        email: form.email,
+        major: form.major,
+        year: Number(form.year),
+        experience_years: Number(form.experience),
+        desired_role: profile?.desired_role || "other",
+      });
+      setSaveState("saved");
     }, 900);
     return () => timer.current && clearTimeout(timer.current);
   }, [form]);
@@ -47,16 +65,27 @@ export default function StudentProfile({ navigate: _navigate }: { navigate?: (r:
 
   const set = (k: keyof typeof form, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!nameValid || !emailValid) {
       toast.error("Please fix validation errors before saving.");
       return;
     }
     setSaveState("saving");
-    setTimeout(() => {
+    const success = await saveProfile({
+      name: form.name,
+      email: form.email,
+      major: form.major,
+      year: Number(form.year),
+      experience_years: Number(form.experience),
+      desired_role: profile?.desired_role || "other",
+    });
+    if (success) {
       setSaveState("saved");
-      toast.success("Profile saved.");
-    }, 700);
+      toast.success("Profile saved to database.");
+    } else {
+      setSaveState("unsaved");
+      toast.error("Failed to save profile.");
+    }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -75,7 +104,9 @@ export default function StudentProfile({ navigate: _navigate }: { navigate?: (r:
     <div className="page" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0 }}>Profile</h1>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            Profile {loading && <Spinner size={16} />}
+          </h1>
           <p style={{ fontSize: 13, color: "var(--faint)", margin: "4px 0 0 0" }}>Your identity in the cohort. Visible to your lecturer.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500 }}>
@@ -115,7 +146,7 @@ export default function StudentProfile({ navigate: _navigate }: { navigate?: (r:
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--faint)", marginBottom: 6 }}>Student ID</label>
             <input
-              value={student.studentId}
+              value={studentId}
               readOnly
               style={{ ...inputStyle, backgroundColor: "var(--surface-2)", color: "var(--faint)", cursor: "not-allowed", fontFamily: "monospace" }}
             />

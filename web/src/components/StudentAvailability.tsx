@@ -1,18 +1,26 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, AlertTriangle, Copy, X } from "lucide-react";
-import { getStudent } from "../data/mock";
+import { useProfileData } from "../hooks/useProfileData";
 import { DAYS, SLOTS, SLOT_LABELS } from "../types/constants";
 import { Button } from "./ui";
 
 export default function StudentAvailability({ navigate: _navigate }: { navigate?: (r: string) => void }) {
-  const student = getStudent("s-1") || {
-    availability: ["Mon-Morning", "Tue-Afternoon", "Wed-Evening", "Thu-Morning", "Fri-Afternoon"],
-  };
-  const [selected, setSelected] = useState<Set<string>>(new Set(student.availability || []));
+  const { profile, saveProfile } = useProfileData();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [dragging, setDragging] = useState(false);
   const [dragMode, setDragMode] = useState<"add" | "remove">("add");
   const [copyFrom, setCopyFrom] = useState<string | null>(null);
   const [copyTargets, setCopyTargets] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (profile && profile.availability) {
+      setSelected(new Set(profile.availability));
+    }
+  }, [profile]);
+
+  const persistAvailability = async (nextSet: Set<string>) => {
+    await saveProfile({ availability: Array.from(nextSet) });
+  };
 
   const key = (d: string, s: string) => `${d}-${s}`;
 
@@ -31,10 +39,18 @@ export default function StudentAvailability({ navigate: _navigate }: { navigate?
   };
   const onEnter = (k: string) => dragging && apply(k, dragMode);
 
+  const handleDragEnd = () => {
+    if (dragging) {
+      setDragging(false);
+      persistAvailability(selected);
+    }
+  };
+
   const clearDay = (d: string) =>
     setSelected((prev) => {
       const n = new Set(prev);
       SLOTS.forEach((s) => n.delete(key(d, s)));
+      persistAvailability(n);
       return n;
     });
 
@@ -47,6 +63,7 @@ export default function StudentAvailability({ navigate: _navigate }: { navigate?
         SLOTS.forEach((s) => n.delete(key(d, s)));
         srcSlots.forEach((s) => n.add(key(d, s)));
       });
+      persistAvailability(n);
       return n;
     });
     setCopyFrom(null);
@@ -57,7 +74,7 @@ export default function StudentAvailability({ navigate: _navigate }: { navigate?
   const low = count < 5;
 
   return (
-    <div className="page" style={{ display: "flex", flexDirection: "column", gap: 20 }} onMouseUp={() => setDragging(false)} onMouseLeave={() => setDragging(false)}>
+    <div className="page" style={{ display: "flex", flexDirection: "column", gap: 20 }} onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd}>
       <div>
         <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0 }}>Weekly Availability</h1>
         <p style={{ fontSize: 13, color: "var(--faint)", margin: "4px 0 0 0" }}>Click or drag to mark when you're free for team work.</p>

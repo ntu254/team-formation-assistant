@@ -1,14 +1,6 @@
 import { Calendar, Clock, ArrowRight, Check, Circle, Megaphone, ChevronRight, CircleDot } from "lucide-react";
-import { useAuth } from "../lib/AuthContext";
-
-const CHECKLIST = [
-  { label: "Basic Info",           route: "student/profile", state: "done"     },
-  { label: "Skills",               route: "student/skills",  state: "done"     },
-  { label: "Availability",         route: "student/avail",   state: "done"     },
-  { label: "Role Preferences",     route: "student/prefs",   state: "progress" },
-  { label: "Pairing Preferences",  route: "student/prefs",   state: "todo"     },
-  { label: "Final Review",         route: "student/review",  state: "todo"     },
-] as const;
+import { useAuth } from "../lib/auth";
+import { useProfileData } from "../hooks/useProfileData";
 
 function Donut({ value }: { value: number }) {
   const r = 40, c = 2 * Math.PI * r;
@@ -31,9 +23,28 @@ interface Props { navigate: (r: string) => void; }
 
 export default function StudentDashboard({ navigate }: Props) {
   const { user } = useAuth();
-  const firstName = (user?.displayName ?? "Student").split(" ").slice(-1)[0];
-  const completion = 72; // would come from API
-  const first = CHECKLIST.find(c => c.state !== "done");
+  const { profile } = useProfileData();
+  const firstName = (user?.displayName ?? profile?.name ?? "Student").split(" ").slice(-1)[0];
+
+  const basicDone = Boolean(profile?.name && profile?.major && profile?.experience_years !== undefined);
+  const skillsDone = Boolean((profile?.skills?.length ?? 0) >= 3);
+  const availDone = Boolean((profile?.availability?.length ?? 0) >= 5);
+  const roleDone = Boolean(profile?.desired_role && profile.desired_role !== "other");
+  const pairingDone = Boolean(roleDone);
+  const allReady = basicDone && skillsDone && availDone && roleDone;
+
+  const checklist = [
+    { label: "Basic Info", route: "student/profile", state: basicDone ? "done" : "progress" },
+    { label: "Skills", route: "student/skills", state: skillsDone ? "done" : basicDone ? "progress" : "todo" },
+    { label: "Availability", route: "student/avail", state: availDone ? "done" : skillsDone ? "progress" : "todo" },
+    { label: "Role Preferences", route: "student/prefs", state: roleDone ? "done" : availDone ? "progress" : "todo" },
+    { label: "Pairing Preferences", route: "student/prefs", state: pairingDone ? "done" : roleDone ? "progress" : "todo" },
+    { label: "Final Review", route: "student/review", state: allReady ? "progress" : "todo" },
+  ] as const;
+
+  const doneCount = checklist.filter(c => c.state === "done").length;
+  const completion = Math.round((doneCount / checklist.length) * 100);
+  const first = checklist.find(c => c.state !== "done");
 
   return (
     <div className="page" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -73,7 +84,7 @@ export default function StudentDashboard({ navigate }: Props) {
             <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>Complete each step to submit your profile.</p>
           </div>
           <div style={{ padding: 8 }}>
-            {CHECKLIST.map(item => (
+            {checklist.map(item => (
               <button key={item.label} onClick={() => navigate(item.route)}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: "var(--r-sm)", border: "none", background: "transparent", cursor: "pointer", textAlign: "left" }}
                 onMouseOver={e => (e.currentTarget.style.background = "var(--surface-2)")}

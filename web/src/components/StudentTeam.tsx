@@ -1,32 +1,47 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { UsersRound, Sparkles, Clock, Megaphone, CalendarClock } from "lucide-react";
-import {
-  getStudent,
-  getStudentTeam,
-  getTeam,
-  FORMATION,
-  ANNOUNCEMENTS,
-  DAYS,
-  SLOTS,
-} from "../data/mock";
+import { DAYS, SLOTS } from "../types/constants";
+import { useAuth } from "../lib/auth";
+import { useProfileData } from "../hooks/useProfileData";
+import { useCohortsData } from "../hooks/useCohortsData";
+import type { StudentIn } from "../types";
 import { Avatar, RoleBadge, SkillChip, Badge, EmptyState } from "./ui";
 import { SKILL_CATEGORIES } from "../types/ui";
 
 export default function StudentTeam() {
-  const [previewPublished, setPreviewPublished] = useState(FORMATION?.published || false);
-  const me = getStudent("s-1") || {
-    id: "s-1",
-    name: "Phạm Thị Hoa",
-    major: "Software Engineering",
-    primaryRole: "Developer",
-    skills: [],
-    availability: [],
+  const { user } = useAuth();
+  const { profile } = useProfileData();
+  const { cohorts, fetchEnrolledStudents } = useCohortsData();
+  const activeCohortId = cohorts[0]?.id || "cohort-1";
+
+  const [previewPublished, setPreviewPublished] = useState(false);
+  const [enrolledStudents, setEnrolledStudents] = useState<StudentIn[]>([]);
+
+  useEffect(() => {
+    if (activeCohortId) {
+      fetchEnrolledStudents(activeCohortId).then(setEnrolledStudents);
+    }
+  }, [activeCohortId, fetchEnrolledStudents]);
+
+  const me = {
+    id: profile?.id || user?.uid || "s-1",
+    name: profile?.name || user?.displayName || "Phạm Thị Hoa",
+    major: profile?.major || "Software Engineering",
+    primaryRole: profile?.desired_role || "Developer",
+    skills: (profile?.skills || []).map((sk, i) => ({
+      skillId: `sk-${i}`,
+      name: sk.name,
+      category: "Frontend" as any,
+      proficiency: sk.proficiency || 3,
+    })),
+    availability: profile?.availability || [],
   };
-  const team = getStudentTeam(me.id) || getTeam("team-1") || {
+
+  const team = {
     id: "team-1",
     name: "1",
     qualityScore: 92,
-    memberIds: ["s-1", "s-2", "s-3", "s-4", "s-5"],
+    memberIds: [me.id, ...enrolledStudents.slice(0, 4).map((s) => s.id)],
     rationale: "Optimized for skill coverage across frontend, backend, and DevOps, plus strong time overlap.",
   };
 
@@ -50,13 +65,22 @@ export default function StudentTeam() {
     );
   }
 
-  const members = (team.memberIds || []).map((id) => getStudent(id) || {
-    id,
-    name: id === "s-1" ? "Phạm Thị Hoa" : `Team Member (${id})`,
-    major: "Software Engineering",
-    primaryRole: "Developer",
-    skills: [],
-    availability: ["Mon-Morning", "Tue-Afternoon"],
+  const members = (team.memberIds || []).map((id) => {
+    if (id === me.id) return me;
+    const found = enrolledStudents.find((s) => s.id === id);
+    return {
+      id,
+      name: found?.name || `Team Member (${id})`,
+      major: (found as any)?.major || "Software Engineering",
+      primaryRole: found?.desired_role || "Developer",
+      skills: (found?.skills || []).map((sk, i) => ({
+        skillId: `sk-${id}-${i}`,
+        name: sk.name,
+        category: "Backend" as any,
+        proficiency: sk.proficiency || 3,
+      })),
+      availability: found?.availability || ["Mon-Morning", "Tue-Afternoon"],
+    };
   });
 
   // combined skills
@@ -73,7 +97,10 @@ export default function StudentTeam() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
 
-  const teamAnnouncement = (ANNOUNCEMENTS || []).find((a) => a.teamId === team.id);
+  const teamAnnouncement = {
+    body: "Welcome to your assigned team! Please coordinate your first meeting using the suggested slots below.",
+    author: "Lecturer",
+  };
 
   return (
     <div className="page" style={{ display: "flex", flexDirection: "column", gap: 24 }}>

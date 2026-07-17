@@ -1,32 +1,44 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, Plus, X, ChevronDown, ChevronRight, FileText } from "lucide-react";
-import { getStudent } from "../data/mock";
+import { useProfileData } from "../hooks/useProfileData";
 import { SKILL_CATALOG } from "../types/constants";
 import { SKILL_CATEGORIES, SkillCategory, StudentSkill, Proficiency } from "../types/ui";
 import { proficiencyLabel, EmptyState, toast } from "./ui";
 
 export default function StudentSkills({ navigate: _navigate }: { navigate?: (r: string) => void }) {
-  const student = getStudent("s-1") || {
-    studentId: "SE184201",
-    name: "Phạm Thị Hoa",
-    email: "hoapt.se1842@fpt.edu.vn",
-    major: "Software Engineering",
-    year: 3,
-    experience: 2,
-    bio: "",
-    skills: [
-      { skillId: "sk-1", name: "React / Next.js", category: "Frontend" as SkillCategory, proficiency: 4 as Proficiency },
-      { skillId: "sk-2", name: "TypeScript", category: "Frontend" as SkillCategory, proficiency: 4 as Proficiency },
-    ],
-  };
-  const [skills, setSkills] = useState<StudentSkill[]>(student.skills || []);
-  const [expanded, setExpanded] = useState<Set<SkillCategory>>(
-    new Set(SKILL_CATEGORIES.filter((c) => (student.skills || []).some((s) => s.category === c)))
-  );
+  const { profile, saveProfile } = useProfileData();
+
+  const [skills, setSkills] = useState<StudentSkill[]>([]);
+  const [expanded, setExpanded] = useState<Set<SkillCategory>>(new Set(SKILL_CATEGORIES));
   const [globalSearch, setGlobalSearch] = useState("");
   const [addingIn, setAddingIn] = useState<SkillCategory | null>(null);
   const [addQuery, setAddQuery] = useState("");
   const [evidenceOpen, setEvidenceOpen] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (profile && profile.skills) {
+      const mapped: StudentSkill[] = profile.skills.map((sk, i) => {
+        const found = SKILL_CATALOG.find((c) => c.name.toLowerCase() === sk.name.toLowerCase());
+        return {
+          skillId: found?.id || `sk-custom-${i}`,
+          name: sk.name,
+          category: (found?.category || "Frontend") as SkillCategory,
+          proficiency: (sk.proficiency || 3) as Proficiency,
+        };
+      });
+      setSkills(mapped);
+      setExpanded(new Set(SKILL_CATEGORIES.filter((c) => mapped.some((s) => s.category === c))));
+    }
+  }, [profile]);
+
+  const persistSkills = async (next: StudentSkill[]) => {
+    await saveProfile({
+      skills: next.map((s) => ({
+        name: s.name,
+        proficiency: s.proficiency || 3,
+      })),
+    });
+  };
 
   const addSkill = (name: string, category: SkillCategory) => {
     const sk = SKILL_CATALOG.find((s) => s.name === name && s.category === category);
@@ -35,15 +47,26 @@ export default function StudentSkills({ navigate: _navigate }: { navigate?: (r: 
       toast.error("Skill already added.");
       return;
     }
-    setSkills((p) => [...p, { skillId: sk.id, name: sk.name, category: sk.category, proficiency: 3 }]);
+    const next: StudentSkill[] = [...skills, { skillId: sk.id, name: sk.name, category: sk.category, proficiency: 3 }];
+    setSkills(next);
+    persistSkills(next);
     setAddQuery("");
     setAddingIn(null);
     setExpanded((e) => new Set(e).add(category));
   };
 
-  const remove = (id: string) => setSkills((p) => p.filter((s) => s.skillId !== id));
-  const setProf = (id: string, prof: Proficiency) =>
-    setSkills((p) => p.map((s) => (s.skillId === id ? { ...s, proficiency: prof } : s)));
+  const remove = (id: string) => {
+    const next = skills.filter((s) => s.skillId !== id);
+    setSkills(next);
+    persistSkills(next);
+  };
+
+  const setProf = (id: string, prof: Proficiency) => {
+    const next = skills.map((s) => (s.skillId === id ? { ...s, proficiency: prof } : s));
+    setSkills(next);
+    persistSkills(next);
+  };
+
   const setEvidence = (id: string, text: string) =>
     setSkills((p) => p.map((s) => (s.skillId === id ? { ...s, evidence: text } : s)));
 

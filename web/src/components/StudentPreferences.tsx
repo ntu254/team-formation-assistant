@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Crown,
   Code2,
@@ -15,9 +15,12 @@ import {
   AlertCircle,
   Lock,
 } from "lucide-react";
-import { STUDENTS, getStudent } from "../data/mock";
+import { useAuth } from "../lib/auth";
+import { useProfileData } from "../hooks/useProfileData";
+import { useCohortsData } from "../hooks/useCohortsData";
 import { TEAM_ROLES, TeamRole } from "../types/ui";
-import { Avatar } from "./ui";
+import type { StudentIn } from "../types";
+import { Avatar, toast } from "./ui";
 
 const ROLE_META: Record<TeamRole, { icon: typeof Crown; desc: string }> = {
   Leader: { icon: Crown, desc: "Drive direction and manage deliverables" },
@@ -38,49 +41,84 @@ interface Pair {
 }
 
 export default function StudentPreferences({ navigate: _navigate }: { navigate?: (r: string) => void }) {
-  const me = getStudent("s-1") || {
-    id: "s-1",
-    name: "Phạm Thị Hoa",
-    primaryRole: "Developer" as TeamRole,
-    rankedRoles: ["Developer", "Leader"] as TeamRole[],
-    avoidRoles: ["Presenter"] as TeamRole[],
-    mustPair: ["s-2"],
-    cannotPair: ["s-3"],
-  };
-  const [primary, setPrimary] = useState<TeamRole>(me.primaryRole || "Developer");
-  const [openTo, setOpenTo] = useState<Set<TeamRole>>(new Set(me.rankedRoles || []));
-  const [avoid, setAvoid] = useState<Set<TeamRole>>(new Set(me.avoidRoles || []));
-  const [query, setQuery] = useState("");
-  const [mustPair, setMustPair] = useState<Pair[]>(
-    (me.mustPair || []).map((id) => {
-      const s = getStudent(id) || { id, name: "Classmate", major: "SE", year: 3 };
-      return { id, name: s.name, major: s.major, year: s.year, reason: "" };
-    })
-  );
-  const [cannotPair, setCannotPair] = useState<Pair[]>(
-    (me.cannotPair || []).map((id) => {
-      const s = getStudent(id) || { id, name: "Classmate", major: "SE", year: 3 };
-      return { id, name: s.name, major: s.major, year: s.year, reason: "" };
-    })
-  );
+  const { user } = useAuth();
+  const { profile, saveProfile } = useProfileData();
+  const { cohorts, fetchEnrolledStudents, fetchCohortConstraints, proposeConstraint } = useCohortsData();
 
-  const taken = new Set([me.id, ...mustPair.map((p) => p.id), ...cannotPair.map((p) => p.id)]);
+  const activeCohortId = cohorts[0]?.id || "cohort-1";
+  const [enrolledStudents, setEnrolledStudents] = useState<StudentIn[]>([]);
+
+  useEffect(() => {
+    if (activeCohortId) {
+      fetchEnrolledStudents(activeCohortId).then(setEnrolledStudents);
+    }
+  }, [activeCohortId, fetchEnrolledStudents]);
+
+  const [primary, setPrimary] = useState<TeamRole>("Developer");
+  const [openTo, setOpenTo] = useState<Set<TeamRole>>(new Set(["Developer", "Leader"]));
+  const [avoid, setAvoid] = useState<Set<TeamRole>>(new Set(["Presenter"]));
+  const [query, setQuery] = useState("");
+  const [mustPair, setMustPair] = useState<Pair[]>([]);
+  const [cannotPair, setCannotPair] = useState<Pair[]>([]);
+
+  useEffect(() => {
+    if (profile && profile.desired_role) {
+      setPrimary((profile.desired_role as TeamRole) || "Developer");
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (activeCohortId) {
+      fetchCohortConstraints(activeCohortId).then((constraints) => {
+        const must: Pair[] = [];
+        const cannot: Pair[] = [];
+        constraints.forEach((c) => {
+          const s = enrolledStudents.find((st) => st.id === c.student_b) || {
+            name: c.student_b,
+            major: "Software Engineering",
+            year: 3,
+          };
+          const pair: Pair = {
+            id: c.student_b,
+            name: s.name,
+            major: (s as any).major || "Software Engineering",
+            year: (s as any).year || 3,
+            reason: "",
+          };
+          if (c.type === "must_pair") must.push(pair);
+          else if (c.type === "cannot_pair") cannot.push(pair);
+        });
+        setMustPair(must);
+        setCannotPair(cannot);
+      });
+    }
+  }, [activeCohortId, fetchCohortConstraints, enrolledStudents]);
+
+  const taken = new Set([user?.uid || profile?.id || "s-1", ...mustPair.map((p) => p.id), ...cannotPair.map((p) => p.id)]);
   const results = useMemo(
     () =>
       query
-        ? (STUDENTS || []).filter(
+        ? enrolledStudents.filter(
             (s) => !taken.has(s.id) && s.name.toLowerCase().includes(query.toLowerCase())
           ).slice(0, 6)
         : [],
-    [query, mustPair, cannotPair]
+    [query, enrolledStudents, taken]
   );
 
-  const addTo = (list: "must" | "cannot", sId: string) => {
-    const s = getStudent(sId) || { id: sId, name: "Classmate", major: "SE", year: 3 };
-    const p: Pair = { id: sId, name: s.name, major: s.major, year: s.year, reason: "" };
+  const handleRoleSelect = async (role: TeamRole) => {
+    setPrimary(role);
+    await saveProfile({ desired_role: role });
+    toast.success(`Primary role updated to ${role}`);
+  };
+
+  const addTo = async (list: "must" | "cannot", sId: string) => {
+    const s = enrolledStudents.find((st) => st.id === sId) || { id: sId, name: "Classmate", major: "Software Engineering", year: 3 };
+    const p: Pair = { id: sId, name: s.name, major: (s as any).major || "Software Engineering", year: (s as any).year || 3, reason: "" };
     if (list === "must") setMustPair((x) => [...x, p]);
     else setCannotPair((x) => [...x, p]);
     setQuery("");
+    await proposeConstraint(activeCohortId, list === "must" ? "must_pair" : "cannot_pair", sId);
+    toast.success("Pairing request submitted.");
   };
 
   return (
@@ -100,7 +138,7 @@ export default function StudentPreferences({ navigate: _navigate }: { navigate?:
             return (
               <button
                 key={role}
-                onClick={() => setPrimary(role)}
+                onClick={() => handleRoleSelect(role)}
                 style={{
                   textAlign: "left",
                   padding: 14,
