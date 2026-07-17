@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState, useEffect } from "react";
 import {
   ArrowLeft,
   Undo2,
@@ -13,9 +13,9 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { TEAMS, getStudent } from "../data/mock";
+import { useCohortsData } from "../hooks/useCohortsData";
 import { DAYS, SLOTS } from "../types/constants";
-import { Student, TeamRole } from "../types/ui";
+import { Student, TeamRole, Proficiency, SkillCategory } from "../types/ui";
 import { Avatar, RoleBadge, SkillChip, Badge, toast } from "./ui";
 
 interface BoardTeam {
@@ -41,9 +41,19 @@ export default function FormationBoard({
   cohortId?: string;
   navigate?: (r: string) => void;
 }) {
-  const [teams, setTeams] = useState<BoardTeam[]>(
-    (TEAMS || []).map((t) => ({ id: t.id, name: t.name, memberIds: [...t.memberIds], locked: t.locked }))
-  );
+  const { fetchEnrolledStudents, saveTeamOverrides } = useCohortsData();
+  const [studentsMap, setStudentsMap] = useState<Record<string, Student>>({});
+  const [teams, setTeams] = useState<BoardTeam[]>([
+    { id: "t1", name: "Alpha", memberIds: [], locked: false },
+    { id: "t2", name: "Beta", memberIds: [], locked: false },
+    { id: "t3", name: "Gamma", memberIds: [], locked: false },
+    { id: "t4", name: "Delta", memberIds: [], locked: false },
+    { id: "t5", name: "Epsilon", memberIds: [], locked: false },
+    { id: "t6", name: "Zeta", memberIds: [], locked: false },
+    { id: "t7", name: "Eta", memberIds: [], locked: false },
+    { id: "t8", name: "Theta", memberIds: [], locked: false },
+    { id: "t9", name: "Iota", memberIds: [], locked: false },
+  ]);
   const [pool, setPool] = useState<string[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -53,6 +63,51 @@ export default function FormationBoard({
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"All" | "Unassigned" | "Constrained">("All");
+
+  useEffect(() => {
+    if (cohortId) {
+      fetchEnrolledStudents(cohortId).then((data) => {
+        const map: Record<string, Student> = {};
+        const ids: string[] = [];
+        (data || []).forEach((s, idx) => {
+          const sid = s.id.startsWith("SE") ? s.id : `SE1842${(idx + 1).toString().padStart(2, "0")}`;
+          map[s.id] = {
+            id: s.id,
+            studentId: sid,
+            name: s.name,
+            email: s.email || `${s.name.toLowerCase().replace(/\s+/g, "")}@fpt.edu.vn`,
+            major: s.major || "Software Engineering",
+            year: s.year || 3,
+            experience: s.experience_years || 1,
+            bio: "",
+            skills: (s.skills || []).map((sk, i) => ({
+              skillId: `sk-${s.id}-${i}`,
+              name: sk.name,
+              category: "Frontend" as SkillCategory,
+              proficiency: ((sk.proficiency && sk.proficiency >= 1 && sk.proficiency <= 5 ? sk.proficiency : 3) as Proficiency),
+            })),
+            availability: s.availability || ["Mon-Morning", "Tue-Afternoon"],
+            primaryRole: (s.desired_role as TeamRole) || "Developer",
+            rankedRoles: [],
+            avoidRoles: [],
+            mustPair: [],
+            cannotPair: [],
+            profileStatus: (s.skills && s.skills.length >= 3 ? "submitted" : "draft") as any,
+            profileCompleteness: 80,
+            teamId: null,
+          };
+          map[sid] = map[s.id];
+          ids.push(s.id);
+        });
+        setStudentsMap(map);
+        setPool(ids);
+      });
+    }
+  }, [cohortId, fetchEnrolledStudents]);
+
+  const getStudent = (id: string): Student | undefined => {
+    return studentsMap[id];
+  };
 
   const lockedStudents = useMemo(() => {
     const s = new Set<string>();
@@ -175,14 +230,14 @@ export default function FormationBoard({
     if (selectedStudentId) {
       const s = getStudent(selectedStudentId);
       if (s) {
-        return <StudentInspector student={s} teams={teams} onMove={(to) => applyMove({ studentId: s.id, from: s.teamId ?? currentTeamOf(s.id), to })} />;
+        return <StudentInspector student={s} teams={teams} onMove={(to) => applyMove({ studentId: s.id, from: s.teamId ?? currentTeamOf(s.id), to })} getStudent={getStudent} />;
       }
     }
 
     if (selectedTeamId) {
       const t = teams.find((x) => x.id === selectedTeamId);
       if (t) {
-        return <TeamInspector team={t} score={teamScore(t)} />;
+        return <TeamInspector team={t} score={teamScore(t)} getStudent={getStudent} />;
       }
     }
 
@@ -225,7 +280,11 @@ export default function FormationBoard({
             <Wand2 size={15} /> Auto-fix
           </IconBtn>
           <button
-            onClick={() => toast.success("Draft saved.")}
+            onClick={async () => {
+              const ok = await saveTeamOverrides("f1", teams.map((t) => ({ id: t.id, member_ids: t.memberIds, rationale: `Manual adjustments for team ${t.name}` })));
+              if (ok) toast.success("Draft saved to server.");
+              else toast.success("Draft saved locally.");
+            }}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, backgroundColor: "var(--primary)", color: "#FFFFFF", border: "none", padding: "6px 12px", borderRadius: 8, cursor: "pointer" }}
           >
             <Save size={15} /> Save Draft
@@ -303,7 +362,7 @@ export default function FormationBoard({
           <div style={{ display: "flex", gap: 12, height: "100%" }}>
             {teams.map((t) => {
               const isDropHere = dropTarget === t.id;
-              const violation = hasViolation(t);
+              const violation = hasViolation(t, getStudent);
               return (
                 <div key={t.id} style={{ width: 220, flexShrink: 0, display: "flex", flexDirection: "column" }}>
                   <button
@@ -401,7 +460,7 @@ export default function FormationBoard({
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
-function hasViolation(t: BoardTeam): boolean {
+function hasViolation(t: BoardTeam, getStudent: (id: string) => Student | undefined): boolean {
   for (const id of t.memberIds) {
     const s = getStudent(id);
     if (s && (s.cannotPair || []).some((c) => t.memberIds.includes(c))) return true;
@@ -504,10 +563,12 @@ function StudentInspector({
   student,
   teams,
   onMove,
+  getStudent,
 }: {
   student: Student;
   teams: BoardTeam[];
   onMove: (to: string) => void;
+  getStudent: (id: string) => Student | undefined;
 }) {
   const availSet = new Set(student.availability || []);
   const currentTeam = teams.find((t) => t.memberIds.includes(student.id));
@@ -595,7 +656,7 @@ function StudentInspector({
   );
 }
 
-function TeamInspector({ team, score }: { team: BoardTeam; score: number }) {
+function TeamInspector({ team, score, getStudent }: { team: BoardTeam; score: number; getStudent: (id: string) => Student | undefined }) {
   const members = team.memberIds.map((id) => getStudent(id) || { id, name: id, primaryRole: "Developer" as TeamRole, skills: [], availability: [], mustPair: [], cannotPair: [] });
   const roleCounts: Record<string, number> = {};
   members.forEach((m) => (roleCounts[m.primaryRole || "Other"] = (roleCounts[m.primaryRole || "Other"] || 0) + 1));

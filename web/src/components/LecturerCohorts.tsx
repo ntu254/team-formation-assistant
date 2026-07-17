@@ -1,27 +1,60 @@
 import React, { useMemo, useState } from "react";
 import { Plus, Search, ChevronDown, X, FolderOpen } from "lucide-react";
-import { COHORTS } from "../data/mock";
+import { useCohortsData } from "../hooks/useCohortsData";
 import { CohortStatus } from "../types/ui";
-import { StatusBadge, ProgressBar, Button, EmptyState } from "./ui";
+import { StatusBadge, ProgressBar, Button, EmptyState, toast } from "./ui";
 
 const STATUSES: (CohortStatus | "all")[] = [
   "all", "draft", "collecting", "ready", "optimizing", "review", "finalized", "archived",
 ];
 
 export default function LecturerCohorts({ navigate }: { navigate?: (r: string) => void }) {
+  const { cohorts, createNewCohort } = useCohortsData();
   const [q, setQ] = useState("");
   const [semester, setSemester] = useState("all");
   const [status, setStatus] = useState<CohortStatus | "all">("all");
   const [showNew, setShowNew] = useState(false);
+  const [newCohortName, setNewCohortName] = useState("");
+  const [newCohortCode, setNewCohortCode] = useState("");
 
-  const semesters = useMemo(() => ["all", ...new Set((COHORTS || []).map((c) => c.semester))], []);
+  const displayCohorts = useMemo(() => {
+    return (cohorts || []).map((c, i) => ({
+      id: c.id,
+      code: c.name.includes(" - ") ? c.name.split(" - ")[0] : `SWE40${i + 1}`,
+      name: c.name.includes(" - ") ? c.name.split(" - ").slice(1).join(" - ") : c.name,
+      module: "SWE401",
+      semester: "Fall 2026",
+      status: "collecting" as CohortStatus,
+      studentCount: 24,
+      profileCompletion: 82,
+      minTeamSize: 4,
+      maxTeamSize: 5,
+    }));
+  }, [cohorts]);
 
-  const filtered = (COHORTS || []).filter(
+  const semesters = useMemo(() => ["all", ...new Set(displayCohorts.map((c) => c.semester))], [displayCohorts]);
+
+  const filtered = displayCohorts.filter(
     (c) =>
       (q === "" || c.code.toLowerCase().includes(q.toLowerCase()) || c.name.toLowerCase().includes(q.toLowerCase())) &&
       (semester === "all" || c.semester === semester) &&
       (status === "all" || c.status === status)
   );
+
+  const handleCreateCohort = async () => {
+    if (!newCohortName.trim()) {
+      toast.error("Cohort name is required");
+      return;
+    }
+    const fullName = newCohortCode ? `${newCohortCode} - ${newCohortName}` : newCohortName;
+    const created = await createNewCohort(fullName);
+    if (created) {
+      toast.success("Cohort created successfully");
+      setShowNew(false);
+      setNewCohortName("");
+      setNewCohortCode("");
+    }
+  };
 
   const selectStyle: React.CSSProperties = {
     appearance: "none",
@@ -145,21 +178,33 @@ export default function LecturerCohorts({ navigate }: { navigate?: (r: string) =
               </button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {[
-                { label: "Cohort Name", ph: "e.g. Software Engineering Project" },
-                { label: "Module Code", ph: "e.g. SWE401" },
-                { label: "Semester", ph: "e.g. Fall 2026" },
-              ].map((f) => (
-                <div key={f.label}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--faint)", marginBottom: 6 }}>{f.label}</label>
-                  <input placeholder={f.ph} style={{ width: "100%", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 13, backgroundColor: "var(--surface-1)", color: "var(--text)", outline: "none" }} />
-                </div>
-              ))}
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--faint)", marginBottom: 6 }}>Cohort Name</label>
+                <input
+                  value={newCohortName}
+                  onChange={(e) => setNewCohortName(e.target.value)}
+                  placeholder="e.g. Software Engineering Project"
+                  style={{ width: "100%", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 13, backgroundColor: "var(--surface-1)", color: "var(--text)", outline: "none" }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--faint)", marginBottom: 6 }}>Module Code</label>
+                <input
+                  value={newCohortCode}
+                  onChange={(e) => setNewCohortCode(e.target.value)}
+                  placeholder="e.g. SWE401"
+                  style={{ width: "100%", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 13, backgroundColor: "var(--surface-1)", color: "var(--text)", outline: "none" }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--faint)", marginBottom: 6 }}>Semester</label>
+                <input placeholder="e.g. Fall 2026" defaultValue="Fall 2026" style={{ width: "100%", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 13, backgroundColor: "var(--surface-1)", color: "var(--text)", outline: "none" }} />
+              </div>
               <div>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--faint)", marginBottom: 6 }}>Team Size</label>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                  {["Min", "Max", "Preferred"].map((l) => (
-                    <input key={l} placeholder={l} type="number" style={{ width: "100%", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 13, backgroundColor: "var(--surface-1)", color: "var(--text)", outline: "none" }} />
+                  {["Min", "Max", "Preferred"].map((l, idx) => (
+                    <input key={l} placeholder={l} type="number" defaultValue={idx === 0 ? 4 : 5} style={{ width: "100%", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 13, backgroundColor: "var(--surface-1)", color: "var(--text)", outline: "none" }} />
                   ))}
                 </div>
               </div>
@@ -172,7 +217,7 @@ export default function LecturerCohorts({ navigate }: { navigate?: (r: string) =
               <Button variant="secondary" onClick={() => setShowNew(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setShowNew(false)}>Create cohort</Button>
+              <Button onClick={handleCreateCohort}>Create cohort</Button>
             </div>
           </div>
         </div>
