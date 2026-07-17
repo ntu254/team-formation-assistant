@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { initializeApp } from "firebase/app";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut, type User } from "firebase/auth";
 
 // If using Firebase, these should come from VITE_ variables
 const firebaseConfig = {
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setToken(btoa(JSON.stringify(parsed))); // Re-encode as mock JWT
           setRole(parsed.role);
           // @ts-ignore
-          setUser({ uid: parsed.uid } as User);
+          setUser({ uid: parsed.uid, displayName: parsed.uid, email: `${parsed.uid}@fpt.edu.vn` } as User);
         } catch (e) {
           localStorage.removeItem("mock_token");
         }
@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(fakeToken);
     setRole(role);
     // @ts-ignore
-    setUser({ uid } as User);
+    setUser({ uid, displayName: uid, email: `${uid}@fpt.edu.vn` } as User);
   }
 
   function logout() {

@@ -18,6 +18,10 @@ export interface SkillIn {
 export interface StudentIn {
   id: string;
   name: string;
+  email?: string;
+  major?: string;
+  year?: number;
+  availability?: string[];
   skills: SkillIn[];
   experience_years: number;
   desired_role: string;

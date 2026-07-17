@@ -1,51 +1,89 @@
 import { useState } from "react";
-import Dashboard from "./components/Dashboard";
-import FormationConsole from "./components/FormationConsole";
-import { UsersIcon } from "./components/icons";
-import ProfileForm from "./components/ProfileForm";
-import Login from "./components/Login";
 import { useAuth } from "./lib/auth";
+import Login from "./components/Login";
+import Shell from "./components/Shell";
+import StudentDashboard from "./components/StudentDashboard";
+import StudentProfile from "./components/StudentProfile";
+import StudentSkills from "./components/StudentSkills";
+import StudentAvailability from "./components/StudentAvailability";
+import StudentPreferences from "./components/StudentPreferences";
+import StudentReview from "./components/StudentReview";
+import StudentTeam from "./components/StudentTeam";
+import LecturerDashboard from "./components/LecturerDashboard";
+import LecturerCohorts from "./components/LecturerCohorts";
+import CohortWorkspace from "./components/CohortWorkspace";
+import FormationBoard from "./components/FormationBoard";
+
+const STUDENT_ROUTES: Record<string, (nav: (r: string) => void) => JSX.Element> = {
+  "student/dashboard": (nav) => <StudentDashboard navigate={nav} />,
+  "student/profile":   (nav) => <StudentProfile navigate={nav} />,
+  "student/skills":    (nav) => <StudentSkills navigate={nav} />,
+  "student/avail":     (nav) => <StudentAvailability navigate={nav} />,
+  "student/prefs":     (nav) => <StudentPreferences navigate={nav} />,
+  "student/review":    (nav) => <StudentReview navigate={nav} />,
+  "student/team":      () => <StudentTeam />,
+};
 
 export default function App() {
-  const { user, role, loading, logout } = useAuth();
-  const [selectedCohort, setSelectedCohort] = useState<string | null>(null);
+  const { user, role, loading } = useAuth();
+  const [route, setRoute] = useState<string>("");
+  const [uiRole, setUiRole] = useState<"student" | "lecturer">("student");
 
-  if (loading) return <div>Loading...</div>;
-  
-  if (!user || !role) {
-    return (
-      <main className="container">
-        <Login />
-      </main>
-    );
+  // Derive cohort from route like "lecturer/cohorts/SE1842/formation"
+  const cohortMatch = route.match(/^lecturer\/cohorts\/([^/]+)/);
+  const cohortId = cohortMatch ? cohortMatch[1] : undefined;
+
+  if (loading) return (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)" }}>
+      <div className="spinner" style={{ width: 32, height: 32, borderColor: "rgba(79,70,229,0.2)", borderTopColor: "var(--primary)" }} />
+    </div>
+  );
+
+  if (!user || !role) return <Login />;
+
+  // Initialise route from auth role on first load
+  if (!route) {
+    const initial = role === "student" ? "student/dashboard" : "lecturer/dashboard";
+    setRoute(initial);
+    setUiRole(role as "student" | "lecturer");
+    return null;
+  }
+
+  const navigate = (r: string) => {
+    setRoute(r);
+    if (r.startsWith("student/")) setUiRole("student");
+    else if (r.startsWith("lecturer/")) setUiRole("lecturer");
+  };
+
+  function renderContent() {
+    // Student routes
+    if (route.startsWith("student/")) {
+      const renderer = STUDENT_ROUTES[route];
+      return renderer ? renderer(navigate) : <StudentDashboard navigate={navigate} />;
+    }
+
+    // Lecturer routes
+    if (route === "lecturer/dashboard") return <LecturerDashboard navigate={navigate} />;
+    if (route === "lecturer/cohorts" || !cohortId) return <LecturerCohorts navigate={navigate} />;
+
+    if (route.includes("/board") || route.includes("/formation/board")) {
+      return <FormationBoard cohortId={cohortId} navigate={navigate} />;
+    }
+
+    // Cohort workspace tabs
+    return <CohortWorkspace cohortId={cohortId} route={route} navigate={navigate} />;
   }
 
   return (
-    <>
-      <header className="app-header">
-        <div className="app-header__inner">
-          <span className="app-header__mark">
-            <UsersIcon />
-          </span>
-          <div>
-            <h1>Team Formation Assistant</h1>
-            <p>AI suggests balanced teams — a lecturer reviews, overrides, and commits.</p>
-          </div>
-          <div style={{ marginLeft: "auto", display: "flex", gap: "1rem", alignItems: "center" }}>
-            <span style={{ fontSize: "0.9rem", color: "#666" }}>Logged in as <b>{user.uid || "user"}</b> ({role})</span>
-            <button className="btn btn--ghost" onClick={logout}>Logout</button>
-          </div>
-        </div>
-      </header>
-      <main className="container">
-        {role === "student" && <ProfileForm />}
-        {role === "lecturer" && !selectedCohort && (
-          <Dashboard onSelectCohort={setSelectedCohort} />
-        )}
-        {role === "lecturer" && selectedCohort && (
-          <FormationConsole cohortId={selectedCohort} onBack={() => setSelectedCohort(null)} />
-        )}
-      </main>
-    </>
+    <Shell
+      role={uiRole}
+      route={route}
+      setRoute={navigate}
+      cohortId={cohortId}
+      profileCompleteness={72}
+    >
+      {renderContent()}
+    </Shell>
   );
 }
+

@@ -63,6 +63,20 @@ export async function commitFormation(
   }
 }
 
+export async function getFormation(
+  formationId: string,
+  auth: Auth,
+): Promise<Formation> {
+  const res = await fetch(`/v1/formations/${encodeURIComponent(formationId)}`, {
+    headers: {
+      Authorization: `Bearer ${auth.token}`,
+    },
+  });
+  if (!res.ok) throw new Error("Failed to get formation");
+  return (await res.json()) as Formation;
+}
+
+
 export async function getConstraints(
   cohortId: string,
   auth: Auth,
@@ -115,6 +129,9 @@ export async function getCohorts(auth: Auth): Promise<Cohort[]> {
   const data = await res.json();
   return data.cohorts as Cohort[];
 }
+
+export const listCohorts = getCohorts;
+
 
 export async function createCohort(name: string, auth: Auth): Promise<Cohort> {
   const res = await fetch("/v1/cohorts", {
@@ -173,18 +190,8 @@ export async function getEnrolledStudents(cohortId: string, auth: Auth): Promise
 }
 
 
-export async function getConstraints(cohortId: string, auth: Auth): Promise<Constraint[]> {
-  const res = await fetch(`/api/v1/cohorts/${cohortId}/constraints`, {
-    headers: {
-      Authorization: `Bearer ${auth.token}`,
-    },
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return (await res.json()).constraints;
-}
-
 export async function addConstraint(cohortId: string, type: string, targetStudentId: string, auth: Auth): Promise<void> {
-  const res = await fetch(`/api/v1/cohorts/${cohortId}/constraints`, {
+  const res = await fetch(`/v1/cohorts/${encodeURIComponent(cohortId)}/constraints`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -196,7 +203,7 @@ export async function addConstraint(cohortId: string, type: string, targetStuden
 }
 
 export async function updateConstraintStatus(cohortId: string, constraintId: string, status: string, auth: Auth): Promise<void> {
-  const res = await fetch(`/api/v1/cohorts/${cohortId}/constraints/${constraintId}/status`, {
+  const res = await fetch(`/v1/cohorts/${encodeURIComponent(cohortId)}/constraints/${encodeURIComponent(constraintId)}/status`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -206,3 +213,4 @@ export async function updateConstraintStatus(cohortId: string, constraintId: str
   });
   if (!res.ok) throw new Error(await res.text());
 }
+

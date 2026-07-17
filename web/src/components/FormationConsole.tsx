@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { runFormation, overrideFormation, commitFormation, getConstraints, updateConstraintStatus } from "../api";
-import type { Formation, StudentIn, Team, Constraint } from "../types";
+import type { Formation, Constraint } from "../types";
 import { CheckIcon, PlayIcon } from "./icons";
 
 import { getEnrolledStudents } from "../api";
