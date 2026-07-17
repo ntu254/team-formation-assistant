@@ -9,6 +9,7 @@ Privacy (constitution BR-08/BR-09, A-05): the model carries NO protected attribu
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 
 # Desired role is domain-neutral and configured per course/project — NOT software-specific.
 # This is only a generic default vocabulary (assumption A-04, needs confirmation); a course can
@@ -92,3 +93,48 @@ class Cohort:
     id: str
     owner_id: str  # the lecturer (user id) who owns this cohort
     name: str = ""
+
+
+@dataclass
+class FormationRun:
+    id: str
+    cohort_id: str
+    project_id: str
+    min_size: int
+    max_size: int
+    seed: int
+    status: str
+    balance: float
+    created_at: datetime
+    teams: list[Team] = field(default_factory=list)
+
+
+@dataclass
+class Constraint:
+    id: str
+    cohort_id: str
+    type: str  # 'must_pair', 'cannot_pair'
+    student_a: str
+    student_b: str
+    status: str  # 'pending', 'approved', 'rejected'
+
+
+@dataclass
+class CommittedResult:
+    id: str
+    cohort_id: str
+    formation_id: str
+    version: int
+    status: str
+    committed_by: str
+    committed_at: datetime
+
+
+@dataclass
+class AuditEvent:
+    id: int
+    cohort_id: str
+    user_id: str
+    action: str
+    payload: str
+    timestamp: datetime

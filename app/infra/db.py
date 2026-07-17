@@ -6,12 +6,14 @@ URL differs. Student PII therefore stays on infra we control (docs/architecture.
 """
 from __future__ import annotations
 
+from datetime import datetime
 import os
 
-from sqlalchemy import String, create_engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
+from sqlalchemy import String, Integer, Float, DateTime, ForeignKey, create_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker, relationship
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./tfa.db")
+
 
 
 class Base(DeclarativeBase):
@@ -26,6 +28,70 @@ class CohortRow(Base):
     name: Mapped[str] = mapped_column(String, default="")
 
 
+class FormationRunRow(Base):
+    __tablename__ = "formation_runs"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    cohort_id: Mapped[str] = mapped_column(String, index=True)
+    project_id: Mapped[str] = mapped_column(String)
+    min_size: Mapped[int] = mapped_column(Integer)
+    max_size: Mapped[int] = mapped_column(Integer)
+    seed: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String)  # succeeded, infeasible, committed
+    balance: Mapped[float] = mapped_column(Float)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    teams: Mapped[list[FormationTeamRow]] = relationship(
+        "FormationTeamRow", back_populates="run", cascade="all, delete-orphan"
+    )
+
+
+class FormationTeamRow(Base):
+    __tablename__ = "formation_teams"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    formation_id: Mapped[str] = mapped_column(String, ForeignKey("formation_runs.id"))
+    name: Mapped[str] = mapped_column(String)  # e.g. "team-1"
+    rationale: Mapped[str] = mapped_column(String, default="")
+    member_ids: Mapped[str] = mapped_column(String)  # comma-separated list of user ids
+
+    run: Mapped[FormationRunRow] = relationship("FormationRunRow", back_populates="teams")
+
+
+class CommittedResultRow(Base):
+    __tablename__ = "committed_results"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    cohort_id: Mapped[str] = mapped_column(String, index=True)
+    formation_id: Mapped[str] = mapped_column(String, ForeignKey("formation_runs.id"))
+    version: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String)  # active, superseded
+    committed_by: Mapped[str] = mapped_column(String)
+    committed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class StudentConstraintRow(Base):
+    __tablename__ = "student_constraints"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    cohort_id: Mapped[str] = mapped_column(String, index=True)
+    type: Mapped[str] = mapped_column(String)  # must_pair, cannot_pair
+    student_a: Mapped[str] = mapped_column(String)
+    student_b: Mapped[str] = mapped_column(String)
+    status: Mapped[str] = mapped_column(String, default="pending")  # pending, approved, rejected
+
+
+class AuditEventRow(Base):
+    __tablename__ = "audit_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    cohort_id: Mapped[str] = mapped_column(String, index=True)
+    user_id: Mapped[str] = mapped_column(String)
+    action: Mapped[str] = mapped_column(String)
+    payload: Mapped[str] = mapped_column(String)  # JSON string
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 def make_engine(url: str | None = None):
     return create_engine(url or DATABASE_URL, future=True)
 
@@ -36,3 +102,4 @@ def make_session_factory(engine):
 
 def init_db(engine) -> None:
     Base.metadata.create_all(engine)
+

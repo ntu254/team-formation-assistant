@@ -41,9 +41,19 @@ export interface Team {
 }
 
 export interface Formation {
+  id: string;
   status: string;
   seed: number;
   balance: number;
   teams: Team[];
   unassignable: [string, string][];
+}
+
+export interface Constraint {
+  id: string;
+  cohort_id: string;
+  type: string;
+  student_a: string;
+  student_b: string;
+  status: string;
 }
