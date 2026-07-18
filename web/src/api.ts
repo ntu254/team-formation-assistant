@@ -152,7 +152,7 @@ export async function getProfile(auth: Auth): Promise<StudentIn> {
       Authorization: `Bearer ${auth.token}`,
     },
   });
-  if (!res.ok) throw new Error("Failed to get profile");
+  if (!res.ok) throw new Error(`Failed to get profile (${res.status})`);
   return await res.json() as StudentIn;
 }
 

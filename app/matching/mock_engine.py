@@ -160,14 +160,31 @@ class MockMatchingEngine:
         result_teams: list[Team] = []
         for idx, members in enumerate(teams):
             members_sorted = sorted(members)  # deterministic member order
+            mean_comp = mean(idx)
+            common_slots_list = sorted(list(set.intersection(*(set(by_id[m].availability) for m in members_sorted)) if members_sorted else set()))
+            common_slots = len(common_slots_list)
+            roles_covered = sorted(list({by_id[m].desired_role for m in members_sorted if by_id[m].desired_role}))
+            role_diversity = len(roles_covered)
+            pref_count = sum(1 for m in members_sorted for p in by_id[m].preferred_teammates if p in members_sorted) // 2
+
+            slots_str = ", ".join(common_slots_list[:3]) + ("..." if len(common_slots_list) > 3 else "")
+            slots_part = f"{common_slots} common availability slots ({slots_str})" if common_slots > 0 else "0 common availability slots (schedule trade-off)"
+            roles_str = ", ".join(roles_covered) if roles_covered else "none"
+
             tm = Team(
                 id=f"team-{idx + 1}",
                 member_ids=members_sorted,
-                scores={"mean_competency": round(mean(idx), 4)},
+                scores={
+                    "mean_competency": round(mean_comp, 4),
+                    "common_slots": common_slots,
+                    "role_diversity": role_diversity,
+                    "preference_score": pref_count,
+                },
                 rationale=(
-                    f"Balanced by competency (mean {round(mean(idx), 2)}); "
-                    f"{len(members_sorted)} members within [{project.min_size},{project.max_size}]; "
-                    f"hard constraints honored."
+                    f"Balanced by competency (mean {round(mean_comp, 2)}); "
+                    f"{slots_part}; roles covered: {roles_str}; "
+                    f"{pref_count} soft peer preferences satisfied; "
+                    f"{len(members_sorted)} members within [{project.min_size},{project.max_size}]."
                 ),
             )
             result_teams.append(tm)

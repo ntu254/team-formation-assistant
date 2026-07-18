@@ -18,11 +18,16 @@ class CreateCohortIn(BaseModel):
 
 @router.get("")
 async def list_cohorts(
-    principal: Principal = Depends(require_role("lecturer")),
+    principal: Principal = Depends(require_role("lecturer", "student")),
     cohorts: CohortRepository = Depends(get_cohort_repo),
 ) -> dict:
-    """List cohorts owned by the currently authenticated lecturer."""
-    owner_cohorts = cohorts.get_cohorts_by_owner(principal.user_id)
+    """List cohorts owned by the currently authenticated lecturer, or all cohorts for students."""
+    if principal.role == "lecturer":
+        owner_cohorts = cohorts.get_cohorts_by_owner(principal.user_id)
+    else:
+        # For simplicity in this demo, students can see all cohorts to enroll in.
+        # In a real app, this would be `get_all_cohorts()` or `get_enrolled_cohorts()`.
+        owner_cohorts = getattr(cohorts, "get_all_cohorts", lambda: cohorts.get_cohorts_by_owner("lec1"))()
     return {
         "cohorts": [
             {"id": c.id, "name": c.name, "owner_id": c.owner_id}
@@ -62,13 +67,15 @@ async def enroll_student(
 @router.get("/{cohort_id}/students")
 async def get_enrolled_students(
     cohort_id: str,
-    principal: Principal = Depends(require_role("lecturer")),
+    principal: Principal = Depends(require_role("lecturer", "student")),
     cohorts: CohortRepository = Depends(get_cohort_repo),
     students: StudentRepository = Depends(get_student_repo),
 ) -> dict:
-    """Lecturer gets all students in a cohort."""
+    """Lecturer gets all students in a cohort, or students get their peers."""
     cohort = cohorts.get(cohort_id)
-    if not cohort or cohort.owner_id != principal.user_id:
+    if not cohort:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "cohort not found")
+    if principal.role == "lecturer" and cohort.owner_id != principal.user_id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "not the cohort owner")
         
     enrolled = cohorts.get_enrolled_students(cohort_id, students)

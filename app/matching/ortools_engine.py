@@ -6,12 +6,15 @@ Hard constraints are model constraints (guaranteed by the solver or reported inf
   - team size band (R1)
   - must-pair / cannot-pair (R2)
 
-Objective: minimize the spread (max - min) of per-team total competency. This is a linear,
-solver-friendly proxy for assumption A-01 (variance of per-team mean competency); the reported
-`balance` still uses the A-01 variance formula for a consistent output score.
+Multi-Objective Function (009):
+  - Competency spread (hi - lo) minimized (R4 / A-01 proxy)
+  - Common availability slots maximized across team members (R5)
+  - Role diversity across team members maximized (R6)
+  - Soft peer preferences (preferred_teammates) maximized (R6)
+  - Weighted combination configurable via project.weights (w_comp, w_avail, w_role, w_pref)
 
-Determinism (R8): single worker + fixed random_seed, and the output teams are canonicalized
-(sorted by members) so the result is identical for the same inputs + seed.
+Determinism (R8): single worker + fixed random_seed, and output teams are canonicalized
+so the result is identical for the same inputs + seed.
 """
 from __future__ import annotations
 
@@ -72,7 +75,7 @@ class OrToolsMatchingEngine:
                 for t in range(k):
                     model.add(x[idx[a], t] + x[idx[b], t] <= 1)
 
-        # Objective: minimize competency spread across teams (A-01 proxy).
+        # Objective 1: Competency spread (hi - lo) across teams.
         team_comp = []
         for t in range(k):
             tc = model.new_int_var(0, total, f"tc_{t}")
@@ -83,7 +86,58 @@ class OrToolsMatchingEngine:
         for t in range(k):
             model.add(hi >= team_comp[t])
             model.add(lo <= team_comp[t])
-        model.minimize(hi - lo)
+
+        # Objective 2: Common availability slots across team members (R5).
+        all_slots = sorted(list({slot for s in students for slot in s.availability}))
+        avail_vars = []
+        for t in range(k):
+            for slot in all_slots:
+                v = model.new_bool_var(f"avail_{slot}_{t}")
+                avail_vars.append(v)
+                for i in range(n):
+                    if slot not in by_id[ids[i]].availability:
+                        model.add(v + x[i, t] <= 1)
+
+        # Objective 3: Role diversity across team members (R6).
+        all_roles = sorted(list({s.desired_role for s in students if s.desired_role}))
+        role_vars = []
+        for t in range(k):
+            for r in all_roles:
+                v = model.new_bool_var(f"role_{r}_{t}")
+                role_vars.append(v)
+                students_with_role = [i for i in range(n) if by_id[ids[i]].desired_role == r]
+                if students_with_role:
+                    model.add(v <= sum(x[i, t] for i in students_with_role))
+                else:
+                    model.add(v == 0)
+
+        # Objective 4: Soft peer preferences (preferred_teammates, R6).
+        soft_pairs = set()
+        for s in students:
+            for p_id in s.preferred_teammates:
+                if p_id in idx and p_id != s.id:
+                    pair = tuple(sorted([idx[s.id], idx[p_id]]))
+                    soft_pairs.add(pair)
+        pref_vars = []
+        for i, j in sorted(list(soft_pairs)):
+            for t in range(k):
+                v = model.new_bool_var(f"pref_{i}_{j}_{t}")
+                pref_vars.append(v)
+                model.add(v <= x[i, t])
+                model.add(v <= x[j, t])
+
+        # Multi-objective weights configuration (defaults: comp=10, avail=5, role=3, pref=2).
+        w_comp = int(round(float(project.weights.get("w_comp", 10.0)) * 10))
+        w_avail = int(round(float(project.weights.get("w_avail", 5.0)) * 10))
+        w_role = int(round(float(project.weights.get("w_role", 3.0)) * 10))
+        w_pref = int(round(float(project.weights.get("w_pref", 2.0)) * 10))
+
+        model.minimize(
+            w_comp * (hi - lo)
+            - w_avail * sum(avail_vars)
+            - w_role * sum(role_vars)
+            - w_pref * sum(pref_vars)
+        )
 
         solver = cp_model.CpSolver()
         solver.parameters.max_time_in_seconds = self.max_time_s
@@ -109,15 +163,31 @@ class OrToolsMatchingEngine:
         result_teams: list[Team] = []
         for t, members in enumerate(canonical):
             mean_comp = sum(by_id[m].competency() for m in members) / len(members) if members else 0.0
+            common_slots_list = sorted(list(set.intersection(*(set(by_id[m].availability) for m in members)) if members else set()))
+            common_slots = len(common_slots_list)
+            roles_covered = sorted(list({by_id[m].desired_role for m in members if by_id[m].desired_role}))
+            role_diversity = len(roles_covered)
+            pref_count = sum(1 for m in members for p in by_id[m].preferred_teammates if p in members) // 2
+
+            slots_str = ", ".join(common_slots_list[:3]) + ("..." if len(common_slots_list) > 3 else "")
+            slots_part = f"{common_slots} common availability slots ({slots_str})" if common_slots > 0 else "0 common availability slots (schedule trade-off)"
+            roles_str = ", ".join(roles_covered) if roles_covered else "none"
+
             result_teams.append(
                 Team(
                     id=f"team-{t + 1}",
                     member_ids=members,
-                    scores={"mean_competency": round(mean_comp, 4)},
+                    scores={
+                        "mean_competency": round(mean_comp, 4),
+                        "common_slots": common_slots,
+                        "role_diversity": role_diversity,
+                        "preference_score": pref_count,
+                    },
                     rationale=(
-                        f"Optimized to minimize competency spread (CP-SAT); "
-                        f"{len(members)} members within [{project.min_size},{project.max_size}]; "
-                        f"hard constraints honored."
+                        f"Multi-objective CP-SAT balance: mean competency {round(mean_comp, 2)}; "
+                        f"{slots_part}; roles covered: {roles_str}; "
+                        f"{pref_count} soft peer preferences satisfied; "
+                        f"{len(members)} members within [{project.min_size},{project.max_size}]."
                     ),
                 )
             )
