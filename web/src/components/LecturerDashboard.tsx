@@ -48,12 +48,14 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function LecturerDashboard({ navigate }: Props) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
 
   useEffect(() => {
-    listCohorts({ token: "" }).then(data => setCohorts(data)).catch(() => {});
-  }, []);
+    if (token) {
+      listCohorts({ token }).then(data => setCohorts(data)).catch(() => {});
+    }
+  }, [token]);
 
   const name = user?.displayName ?? "Lecturer";
 

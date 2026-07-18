@@ -56,6 +56,7 @@ class Project:
     max_size: int = 5   # A-02
     required_roles: tuple[str, ...] = ()
     required_skills: tuple[str, ...] = ()
+    weights: dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.min_size < 1 or self.max_size < self.min_size:

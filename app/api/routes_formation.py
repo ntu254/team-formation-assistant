@@ -32,6 +32,7 @@ class StudentIn(BaseModel):
     skills: list[SkillIn] = []
     availability: list[str] = []
     desired_role: str = "other"
+    preferred_teammates: list[str] = []
 
 
 class RunFormationIn(BaseModel):
@@ -42,6 +43,7 @@ class RunFormationIn(BaseModel):
     must_pair: list[tuple[str, str]] = []
     cannot_pair: list[tuple[str, str]] = []
     seed: int = 0
+    weights: dict[str, float] | None = None
 
 
 @router.post("/cohorts/{cohort_id}/formations")
@@ -69,10 +71,13 @@ async def run_formation(
             skills=[Skill(k.name, k.proficiency) for k in s.skills],
             availability=frozenset(s.availability),
             desired_role=s.desired_role,
+            preferred_teammates=frozenset(s.preferred_teammates),
         )
         for s in body.students
     ]
-    project = Project(id=body.project_id, min_size=body.min_size, max_size=body.max_size)
+    project = Project(
+        id=body.project_id, min_size=body.min_size, max_size=body.max_size, weights=body.weights or {}
+    )
     cons = Constraints(must_pair=list(body.must_pair), cannot_pair=list(body.cannot_pair))
     formation = engine.form_teams(students, project, cons, seed=body.seed)
 
@@ -127,7 +132,7 @@ async def get_formation(
         "status": run.status,
         "balance": run.balance,
         "teams": [
-            {"id": t.id, "members": t.member_ids, "rationale": t.rationale}
+            {"id": t.id, "members": t.member_ids, "scores": t.scores, "rationale": t.rationale}
             for t in run.teams
         ]
     }

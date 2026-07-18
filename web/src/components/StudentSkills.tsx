@@ -153,7 +153,7 @@ export default function StudentSkills({ navigate: _navigate }: { navigate?: (r: 
               (addQuery === "" || s.name.toLowerCase().includes(addQuery.toLowerCase()))
           );
           return (
-            <div key={cat} className="card" style={{ padding: 0, overflow: "hidden" }}>
+            <div key={cat} className="card" style={{ padding: 0 }}>
               <button
                 onClick={() => toggleCat(cat)}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}

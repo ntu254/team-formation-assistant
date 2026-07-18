@@ -31,7 +31,7 @@ The **API and web** need dependencies (not installed here):
 
 ```sh
 uv sync            # or: pip install -e ".[dev]"
-uvicorn app.api.main:app --reload
+uv run uvicorn app.api.main:app --reload --port 8000
 cd web && npm ci && npm run dev
 ```
 
